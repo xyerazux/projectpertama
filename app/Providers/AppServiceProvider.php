@@ -27,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
             $view->with('categories', $categories);
         }
     });
+
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
 }
 
 }
