@@ -20,14 +20,5 @@ public function down(): void
     });
 }
 
-public function getPhotoUrlAttribute()
-{
-    if ($this->photo) {
-        return asset('storage/' . $this->photo);
-    }
-
-    return asset('images/default-avatar.png');
-}
-
 
 };

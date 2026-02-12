@@ -19,11 +19,11 @@ return [
        'mysql' => [
     'driver' => 'mysql',
     'url' => env('DATABASE_URL'),
-    'host' => env('DB_HOST', '127.0.0.1'), // Ini akan mengambil ${{MYSQLHOST}} dari Railway
-    'port' => env('DB_PORT', '3306'),      // Ini akan mengambil ${{MYSQLPORT}} dari Railway
-    'database' => env('DB_DATABASE', 'laravel'),
-    'username' => env('DB_USERNAME', 'root'),
-    'password' => env('DB_PASSWORD', ''),
+    'host' => env('DB_HOST', env('MYSQL_HOST', '127.0.0.1')),
+    'port' => env('DB_PORT', env('MYSQL_PORT', '3306')),
+    'database' => env('DB_DATABASE', env('MYSQL_DATABASE', 'forge')),
+    'username' => env('DB_USERNAME', env('MYSQL_USER', 'forge')),
+    'password' => env('DB_PASSWORD', env('MYSQL_PASSWORD', '')),
     'unix_socket' => env('DB_SOCKET', ''),
     'charset' => 'utf8mb4',
     'collation' => 'utf8mb4_unicode_ci',
