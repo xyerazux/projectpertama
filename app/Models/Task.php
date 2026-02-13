@@ -18,11 +18,7 @@ class Task extends Model
         'link_attachment',
         'priority',
         'status',
-        'deadline',
-    ];
-
-    protected $casts = [
-        'deadline' => 'datetime',
+        'deadline'
     ];
 
     public function category()
