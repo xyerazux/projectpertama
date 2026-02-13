@@ -2,239 +2,161 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Task;
 use App\Models\Category;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class TaskController extends Controller
 {
-    // =======================
-    // LIST TASK
-    // =======================
     public function index(Request $request)
     {
-        $query = Task::where('user_id', auth()->id())
-            ->where('status', '!=', 'done');
+        $user = Auth::user();
+        $query = Task::with('category')->where('user_id', $user->id)->where('status', 'pending');
 
-    if ($request->priority) {
-        $query->where('priority', $request->priority);
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        $tasks = $query->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
+                      ->latest()
+                      ->get();
+
+        $categories = Category::where('user_id', $user->id)->get();
+
+        return view('tasks.index', compact('tasks', 'categories'));
     }
 
-    if ($request->category_id) {
-        $query->where('category_id', $request->category_id);
-    }
-
-    $tasks = $query->latest()->paginate(10);
-    $categories = Category::where('user_id', auth()->id())->get();
-
-    return view('tasks.index', compact('tasks', 'categories'));
-    }
-
-    // =======================
-    // FORM CREATE
-    // =======================
     public function create()
     {
-        $categories = Category::where('user_id', auth()->id())->get();
+        $categories = Category::where('user_id', Auth::id())->get();
         return view('tasks.create', compact('categories'));
     }
 
-    // =======================
-    // STORE TASK
-    // =======================
     public function store(Request $request)
     {
-        $priorityMode = auth()->user()->priority_mode;
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'priority' => 'nullable|in:low,medium,high',
+            'deadline' => 'nullable|date',
+        ]);
 
-        $rules = [
-            'title'       => 'required|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
-            'description' => 'nullable|string',
-            'deadline'    => 'nullable|date',
-        ];
+        $user = Auth::user();
+        $priority = $request->priority ?? 'low';
 
-        if ($priorityMode === 'manual') {
-            $rules['priority'] = 'required|in:low,medium,high';
+        if ($user->priority_mode === 'auto' && $request->deadline) {
+            $priority = $this->calculatePriority($request->deadline);
         }
-
-        $request->validate($rules);
-
-        $priority = $priorityMode === 'manual'
-            ? $request->priority
-            : $this->calculatePriority($request->deadline);
 
         Task::create([
-            'user_id'     => auth()->id(),
-            'title'       => $request->title,
+            'user_id' => $user->id,
             'category_id' => $request->category_id,
-            'description'=> $request->description,
-            'deadline'   => $request->deadline,
-            'priority'   => $priority,
-            'status'     => 'todo',
+            'title' => $request->title,
+            'description' => $request->description,
+            'priority' => $priority,
+            'status' => 'pending',
+            'deadline' => $request->deadline,
         ]);
 
-        return redirect()->route('tasks.index')
-            ->with('success', 'Task berhasil ditambahkan');
+        return redirect()->route('tasks.index')->with('success', 'Task created successfully!');
     }
 
-    // =======================
-    // FORM EDIT
-    // =======================
     public function edit(Task $task)
     {
-        $this->authorizeTask($task);
-
-        $categories = Category::where('user_id', auth()->id())->get();
-
-        return view('tasks.edit', compact('task', 'categories'));
+        $this->authorizeOwner($task);
+        $categories = Category::where('user_id', Auth::id())->get();
+        return view('tasks.create', compact('task', 'categories'));
     }
 
-    // =======================
-    // UPDATE TASK
-    // =======================
     public function update(Request $request, Task $task)
     {
-        $this->authorizeTask($task);
+        $this->authorizeOwner($task);
 
-        $priorityMode = auth()->user()->priority_mode;
-
-        $rules = [
-            'title'       => 'required|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
-            'description' => 'nullable|string',
-            'deadline'    => 'nullable|date',
-        ];
-
-        if ($priorityMode === 'manual') {
-            $rules['priority'] = 'required|in:low,medium,high';
-        }
-
-        $request->validate($rules);
-
-        $priority = $priorityMode === 'manual'
-            ? $request->priority
-            : $this->calculatePriority($request->deadline);
-
-        $task->update([
-            'title'       => $request->title,
-            'category_id' => $request->category_id,
-            'description'=> $request->description,
-            'deadline'   => $request->deadline,
-            'priority'   => $priority,
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'priority' => 'nullable|in:low,medium,high',
+            'deadline' => 'nullable|date',
         ]);
 
-        return redirect()->route('tasks.index')
-            ->with('success', 'Task berhasil diupdate');
+        $user = Auth::user();
+        $priority = $request->priority ?? $task->priority;
+
+        if ($user->priority_mode === 'auto' && $request->deadline) {
+            $priority = $this->calculatePriority($request->deadline);
+        }
+
+        $task->update([
+            'category_id' => $request->category_id,
+            'title' => $request->title,
+            'description' => $request->description,
+            'priority' => $priority,
+            'deadline' => $request->deadline,
+        ]);
+
+        return redirect()->route('tasks.index')->with('success', 'Task updated successfully!');
     }
 
-    // =======================
-    // DELETE
-    // =======================
-    public function destroy(Task $task)
-{
-    // Pastikan hanya pemilik task yang bisa hapus
-    if ($task->user_id !== auth()->id()) {
-        abort(403);
-    }
-
-    $task->delete(); // Ini akan memindah ke trash jika pakai SoftDeletes, atau hapus permanen jika tidak.
-
-    return redirect()->back()->with('status', 'Task deleted successfully');
-}
-    // =======================
-    // MARK DONE
-    // =======================
     public function markDone(Task $task)
-{
-    // Pastikan hanya pemilik task yang bisa akses
-    if ($task->user_id !== auth()->id()) {
-        abort(403);
+    {
+        $this->authorizeOwner($task);
+        $task->update(['status' => 'completed']);
+        return redirect()->route('tasks.index')->with('success', 'Task marked as done!');
     }
 
-    // Update status task. Sesuaikan nama kolomnya (misal: is_completed atau status)
-    $task->update([
-        'status' => 'done',
-        // 'status' => 'completed' // Jika kamu pakai kolom status
-    ]);
-
-    return redirect()->back()->with('status', 'Task marked as completed!');
-}
-
-    // =======================
-    // COMPLETED TASK
-    // =======================
     public function completed()
     {
-        $tasks = Task::with('category')
-            ->where('user_id', auth()->id())
-            ->where('status', 'done')
+        $tasks = Task::where('user_id', Auth::id())
+            ->where('status', 'completed')
             ->latest()
             ->get();
-
         return view('tasks.completed', compact('tasks'));
     }
 
-    // =======================
-    // RESTORE
-    // =======================
+    public function destroy(Task $task)
+    {
+        $this->authorizeOwner($task);
+        $task->delete();
+        return redirect()->route('tasks.index')->with('success', 'Task moved to trash!');
+    }
 
-    // TRASH
-public function trash()
-{
-    $tasks = Task::onlyTrashed()
-        ->where('user_id', auth()->id())
-        ->latest()
-        ->get();
+    public function trash()
+    {
+        $tasks = Task::onlyTrashed()->where('user_id', Auth::id())->get();
+        return view('tasks.trash', compact('tasks'));
+    }
 
-    return view('tasks.trash', compact('tasks'));
-}
+    public function restore($id)
+    {
+        $task = Task::onlyTrashed()->where('user_id', Auth::id())->findOrFail($id);
+        $task->restore();
+        return back()->with('success', 'Task restored!');
+    }
 
-// RESTORE
-public function restore($id)
-{
-    $task = Task::onlyTrashed()
-        ->where('user_id', auth()->id())
-        ->findOrFail($id);
+    public function forceDelete($id)
+    {
+        $task = Task::onlyTrashed()->where('user_id', Auth::id())->findOrFail($id);
+        $task->forceDelete();
+        return back()->with('success', 'Task permanently deleted!');
+    }
 
-    $task->restore();
-
-    return back()->with('success', 'Task berhasil direstore');
-}
-
-// FORCE DELETE
-public function forceDelete($id)
-{
-    $task = Task::onlyTrashed()
-        ->where('user_id', auth()->id())
-        ->findOrFail($id);
-
-    $task->forceDelete();
-
-    return back()->with('success', 'Task dihapus permanen');
-}
-
-
-    // =======================
-    // AUTO PRIORITY
-    // =======================
     private function calculatePriority($deadline)
     {
-        if (!$deadline) return 'low';
-
-        $daysLeft = now()->diffInDays($deadline, false);
-
-        if ($daysLeft <= 2) return 'high';
-        if ($daysLeft <= 5) return 'medium';
-
+        $daysLeft = now()->startOfDay()->diffInDays(Carbon::parse($deadline)->startOfDay(), false);
+        if ($daysLeft <= 1) return 'high';
+        if ($daysLeft <= 3) return 'medium';
         return 'low';
     }
 
-    // =======================
-    // SECURITY CHECK
-    // =======================
-    private function authorizeTask(Task $task)
+    private function authorizeOwner(Task $task)
     {
-        if ($task->user_id !== auth()->id()) {
+        if ($task->user_id !== Auth::id()) {
             abort(403);
         }
     }

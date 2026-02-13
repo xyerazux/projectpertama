@@ -16,14 +16,13 @@ Route::middleware('auth')->group(function () {
     // DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // PROFILE
+    // PROFILE (Rute Photo sudah dihapus)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
     Route::patch('/profile/priority', [ProfileController::class, 'updatePriority'])->name('profile.priority');
     
-    // TASKS (Utama)
+    // TASKS (Utama dengan fitur Deadline, Priority, Status)
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('/tasks/create', [TaskController::class, 'create'])->name('tasks.create');
     Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');

@@ -5,13 +5,8 @@
             {{-- USER DROPDOWN --}}
             <x-dropdown align="right" width="48">
                 <x-slot name="trigger">
-                    <button class="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <img
-                            class="w-8 h-8 rounded-full object-cover"
-                            src="{{ Auth::user()->profile_photo
-                                ? asset('storage/' . Auth::user()->profile_photo)
-                                : asset('images/default-avatar.png') }}"
-                        >
+                    <button class="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                        {{-- Foto Profil Dihapus --}}
                         <span>{{ Auth::user()->name }}</span>
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd"

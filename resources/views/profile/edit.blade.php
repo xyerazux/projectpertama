@@ -11,29 +11,7 @@
     <div class="py-10 bg-gray-50/50">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
             
-            {{-- SEKSI 1: PROFILE PICTURE (Hanya di sini saja) --}}
-            <div class="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm transition hover:shadow-md">
-                <h3 class="text-xs font-black text-gray-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
-                    <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    Profile Picture
-                </h3>
-                <form action="{{ route('profile.photo') }}" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row items-center gap-10">
-                    @csrf @method('PATCH')
-                    <div class="relative">
-                        <img src="{{ auth()->user()->profile_photo ? asset('storage/' . auth()->user()->profile_photo) : asset('images/default-avatar.png') }}"
-                             class="w-32 h-32 rounded-[2.5rem] object-cover border-8 border-gray-50 shadow-inner">
-                    </div>
-                    <div class="flex-1 space-y-4">
-                        <p class="text-sm text-gray-500 italic">Upload a square image for the best result.</p>
-                        <div class="flex flex-wrap gap-4">
-                            <input type="file" name="photo" class="text-xs font-bold text-gray-400 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 transition cursor-pointer">
-                            <button type="submit" class="px-6 py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-lg active:scale-95">Save Photo</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            {{-- SEKSI 2: IDENTITY DETAILS --}}
+            {{-- SEKSI 1: IDENTITY DETAILS (Sekarang jadi yang utama) --}}
             <div class="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm transition hover:shadow-md">
                 <h3 class="text-xs font-black text-gray-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
                     <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
@@ -42,7 +20,7 @@
                 @include('profile.partials.update-profile-information-form')
             </div>
 
-            {{-- SEKSI 3: PRIORITY SYSTEM (Langsung di sini agar tidak tabrakan) --}}
+            {{-- SEKSI 2: PRIORITY SYSTEM --}}
             <div class="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm transition hover:shadow-md">
                 <h3 class="text-xs font-black text-gray-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
                     <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
@@ -63,7 +41,7 @@
                 </form>
             </div>
 
-            {{-- SEKSI 4: SECURITY --}}
+            {{-- SEKSI 3: SECURITY --}}
             <div class="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm transition hover:shadow-md">
                 <h3 class="text-xs font-black text-gray-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
                     <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
@@ -72,7 +50,7 @@
                 @include('profile.partials.update-password-form')
             </div>
 
-            {{-- SEKSI 5: DANGER ZONE --}}
+            {{-- SEKSI 4: DANGER ZONE --}}
             <div class="bg-red-50/20 p-10 rounded-[2.5rem] border border-red-100 border-dashed transition hover:bg-red-50/40">
                 <h3 class="text-xs font-black text-red-600 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
                     <span class="w-2 h-2 bg-red-500 rounded-full"></span>

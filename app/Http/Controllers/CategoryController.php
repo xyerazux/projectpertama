@@ -54,29 +54,24 @@ class CategoryController extends Controller
         return view('categories.edit', compact('category'));
     }
 
-    public function update(Request $request, Category $category)
-    {
-        if ($category->user_id !== auth()->id()) {
-            abort(403);
-        }
-
-        $request->validate([
-            'name'=>'required|max:100'
-        ]);
-
-        $category->update([
-            'name'=>$request->name
-        ])->id(); {
-            abort(403);
-        }
-
-        $category->delete();
-        
-        return back()->with('success', 'Kategori berhasil dihapus');
-
-        return redirect()->route('categories.index')
-            ->with('success', 'Kategori berhasil diupdate');
+   public function update(Request $request, Category $category)
+{
+    if ($category->user_id !== auth()->id()) {
+        abort(403);
     }
+
+    $request->validate([
+        'name' => 'required|max:100'
+    ]);
+
+    $category->update([
+        'name' => $request->name
+    ]);
+
+    return redirect()->route('categories.index')
+        ->with('success', 'Kategori berhasil diupdate');
+}
+
 
     public function destroy(Category $category)
     {

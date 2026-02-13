@@ -2,35 +2,32 @@
 
 namespace App\Models;
 
-use App\Models\Category;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Task extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
         'user_id',
         'category_id',
         'title',
         'description',
-        'deadline',
         'priority',
         'status',
-        
+        'deadline',
     ];
-    public function user() {
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function user(): BelongsTo
+    {
         return $this->belongsTo(User::class);
     }
-
-    public function category()
-    {
-    return $this->belongsTo(Category::class);
-    }
-    
-  
-
 }

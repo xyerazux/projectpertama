@@ -58,34 +58,19 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
+    /**
+     * Update the user's priority mode.
+     */
     public function updatePriority(Request $request)
-{
-    $request->validate([
-        'priority_mode' => 'required|in:auto,manual'
-    ]);
+    {
+        $request->validate([
+            'priority_mode' => 'required|in:auto,manual'
+        ]);
 
-    auth()->user()->update([
-        'priority_mode' => $request->priority_mode
-    ]);
+        auth()->user()->update([
+            'priority_mode' => $request->priority_mode
+        ]);
 
-    return back()->with('success', 'Mode prioritas berhasil diubah');
-}
-
-public function updatePhoto(Request $request)
-{
-    $request->validate([
-        'photo' => 'required|image|max:2048',
-    ]);
-
-    $path = $request->file('photo')->store('profile-photos', 'public');
-
-    $request->user()->update([
-        'profile_photo' => $path,
-    ]);
-
-    return back()->with('status', 'Profile photo updated!');
-}
-
-
-
+        return back()->with('success', 'Mode prioritas berhasil diubah');
+    }
 }

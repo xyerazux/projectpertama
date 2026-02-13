@@ -5,59 +5,33 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $userid = auth()->id();
-        $user = auth()->user();
-        $priority = request('priority');
-        $status = request('status');
-        $recentTasksQuery = Task::where('user_id', $userid);
-        $taskPerCategory = Category::where('user_id', auth()->id())
-        ->withCount('tasks')
-        ->get();
+        $userId = Auth::id();
 
-        
-        if ($priority && $priority !== 'all') {
-            $recentTasksQuery->where('priority', $priority);
-            }
-            
-        if ($status && $status !== 'all') {
-            $recentTasksQuery->where('status', $status);
-            }
+        $totalTasks = Task::where('user_id', $userId)->count();
+        $doneTasks = Task::where('user_id', $userId)->where('status', 'completed')->count();
+        $pendingTasks = Task::where('user_id', $userId)->where('status', 'pending')->count();
 
-            $totalTasks= Task::where('user_id', $user->id)->count();
-            
-            $doneTasks = Task::where('user_id', $user->id)
-            ->where('status', 'done')
-            ->count();
-            
-            $pendingTasks=Task::where('user_id',$user->id)
-            ->where('status', '!=', 'done')
-            ->count();
-            
-            $recentTasks = Task::where('user_id', $user->id)
-                ->latest()
-                ->take(4)
-                ->get();
+        // Urutkan recent tasks berdasarkan prioritas juga agar konsisten
+        $recentTasks = Task::where('user_id', $userId)
+            ->where('status', 'pending')
+            ->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
+            ->latest()
+            ->take(4)
+            ->get();
 
-            $progress = $totalTasks > 0
-                ? round(($doneTasks / $totalTasks) * 100)
-                : 0;
-            
-        return view('dashboard', [
-            'totalTasks'   => $totalTasks,
-            'doneTasks'    => $doneTasks,
-            'pendingTasks' => $pendingTasks,
-            'recentTasks'  => $recentTasks,
-            'progress'     => $progress,
-            'taskPerCategory' => $taskPerCategory,
-        ]);
+        $progress = $totalTasks > 0 ? round(($doneTasks / $totalTasks) * 100) : 0;
 
+        $taskPerCategory = Category::where('user_id', $userId)
+            ->withCount(['tasks' => function($query) {
+                $query->where('status', 'pending');
+            }])->get();
 
+        return view('dashboard', compact('totalTasks', 'doneTasks', 'pendingTasks', 'recentTasks', 'progress', 'taskPerCategory'));
     }
-    
-    
 }
