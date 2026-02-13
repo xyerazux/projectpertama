@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Task extends Model
 {
@@ -16,17 +15,22 @@ class Task extends Model
         'category_id',
         'title',
         'description',
+        'link_attachment',
         'priority',
         'status',
         'deadline',
     ];
 
-    public function category(): BelongsTo
+    protected $casts = [
+        'deadline' => 'datetime',
+    ];
+
+    public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
     }

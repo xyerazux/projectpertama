@@ -24,11 +24,10 @@ class TaskController extends Controller
         }
 
         $tasks = $query->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
-                      ->latest()
-                      ->get();
+                       ->latest()
+                       ->get();
 
         $categories = Category::where('user_id', $user->id)->get();
-
         return view('tasks.index', compact('tasks', 'categories'));
     }
 
@@ -42,24 +41,20 @@ class TaskController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
-            'priority' => 'nullable|in:low,medium,high',
-            'deadline' => 'nullable|date',
+            'category_id' => 'required',
+            'deadline' => 'required|date',
+            'description' => 'nullable|string',
+            'link_attachment' => 'nullable|url',
+            'priority' => 'required',
         ]);
 
-        $user = Auth::user();
-        $priority = $request->priority ?? 'low';
-
-        if ($user->priority_mode === 'auto' && $request->deadline) {
-            $priority = $this->calculatePriority($request->deadline);
-        }
-
         Task::create([
-            'user_id' => $user->id,
+            'user_id' => Auth::id(),
             'category_id' => $request->category_id,
             'title' => $request->title,
             'description' => $request->description,
-            'priority' => $priority,
+            'link_attachment' => $request->link_attachment,
+            'priority' => $request->priority,
             'status' => 'pending',
             'deadline' => $request->deadline,
         ]);
@@ -67,40 +62,34 @@ class TaskController extends Controller
         return redirect()->route('tasks.index')->with('success', 'Task created successfully!');
     }
 
+    public function show(Task $task)
+    {
+        // Not used but added to prevent routing errors
+        return redirect()->route('tasks.index');
+    }
+
     public function edit(Task $task)
     {
         $this->authorizeOwner($task);
         $categories = Category::where('user_id', Auth::id())->get();
-        return view('tasks.create', compact('task', 'categories'));
+        return view('tasks.edit', compact('task', 'categories'));
     }
 
     public function update(Request $request, Task $task)
     {
         $this->authorizeOwner($task);
-
         $request->validate([
             'title' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
-            'priority' => 'nullable|in:low,medium,high',
-            'deadline' => 'nullable|date',
+            'category_id' => 'required',
+            'deadline' => 'required|date',
+            'description' => 'nullable|string',
+            'link_attachment' => 'nullable|url',
+            'priority' => 'required',
+            'status' => 'required|in:pending,completed'
         ]);
 
-        $user = Auth::user();
-        $priority = $request->priority ?? $task->priority;
-
-        if ($user->priority_mode === 'auto' && $request->deadline) {
-            $priority = $this->calculatePriority($request->deadline);
-        }
-
-        $task->update([
-            'category_id' => $request->category_id,
-            'title' => $request->title,
-            'description' => $request->description,
-            'priority' => $priority,
-            'deadline' => $request->deadline,
-        ]);
-
-        return redirect()->route('tasks.index')->with('success', 'Task updated successfully!');
+        $task->update($request->all());
+        return redirect()->route('tasks.index')->with('success', 'Task updated successfully');
     }
 
     public function markDone(Task $task)
@@ -126,32 +115,28 @@ class TaskController extends Controller
         return redirect()->route('tasks.index')->with('success', 'Task moved to trash!');
     }
 
-    public function trash()
-    {
-        $tasks = Task::onlyTrashed()->where('user_id', Auth::id())->get();
-        return view('tasks.trash', compact('tasks'));
-    }
+   public function trash()
+{
+    $tasks = Task::onlyTrashed()->where('user_id', Auth::id())->latest()->get();
+    return view('tasks.trash', compact('tasks'));
+}
+public function restore($id)
+{
+    // Cari task yang sudah dihapus (onlyTrashed) berdasarkan ID
+    $task = Task::onlyTrashed()
+                ->where('user_id', Auth::id())
+                ->findOrFail($id);
 
-    public function restore($id)
-    {
-        $task = Task::onlyTrashed()->where('user_id', Auth::id())->findOrFail($id);
-        $task->restore();
-        return back()->with('success', 'Task restored!');
-    }
+    $task->restore();
+
+    return redirect()->route('tasks.index')->with('success', 'Task restored successfully');
+}
 
     public function forceDelete($id)
     {
         $task = Task::onlyTrashed()->where('user_id', Auth::id())->findOrFail($id);
         $task->forceDelete();
         return back()->with('success', 'Task permanently deleted!');
-    }
-
-    private function calculatePriority($deadline)
-    {
-        $daysLeft = now()->startOfDay()->diffInDays(Carbon::parse($deadline)->startOfDay(), false);
-        if ($daysLeft <= 1) return 'high';
-        if ($daysLeft <= 3) return 'medium';
-        return 'low';
     }
 
     private function authorizeOwner(Task $task)
