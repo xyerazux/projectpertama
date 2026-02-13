@@ -7,7 +7,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('login');
 });
 
 // Semua rute di bawah ini butuh login (auth)
