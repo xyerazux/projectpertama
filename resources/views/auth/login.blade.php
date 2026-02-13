@@ -40,40 +40,57 @@
                         <input type="email" name="email" value="{{ old('email') }}" required autofocus class="w-full px-4 py-2 bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 focus:bg-white transition-all duration-200">
                     </div>
 
-                    <div class="mt-4" x-data="{ show: false }">
-                        <div class="flex justify-between items-center mb-1">
-                            <label for="password" class="text-[10px] font-black uppercase tracking-widest text-gray-400">Password</label>
-                            @if (Route::has('password.request'))
-                                <a href="{{ route('password.request') }}" class="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-500">
-                                    Forgot?
-                                </a>
-                            @endif
-                        </div>
-                        
-                        <div class="relative">
-                            <input :type="show ? 'text' : 'password'" 
-                                   id="password" 
-                                   name="password" 
-                                   required 
-                                   class="w-full bg-gray-50 border-none text-gray-800 text-xs font-bold rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-100 transition-all"
-                                   placeholder="••••••••">
+                    <div class="mt-4">
+    <div class="flex justify-between items-center mb-1">
+        <label for="password" class="text-[10px] font-black uppercase tracking-widest text-gray-400">Password</label>
+        @if (Route::has('password.request'))
+            <a href="{{ route('password.request') }}" class="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-500">
+                Forgot?
+            </a>
+        @endif
+    </div>
+    
+    <div class="relative">
+        <input type="password" 
+               id="password" 
+               name="password" 
+               required 
+               class="w-full bg-gray-50 border-none text-gray-800 text-xs font-bold rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-100 transition-all"
+               placeholder="••••••••">
 
-                            <button type="button" 
-                                    @click="show = !show" 
-                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 hover:text-indigo-600 focus:outline-none p-1">
-                                
-                                <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
+        <button type="button" 
+                onclick="togglePasswordVisibility()" 
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 hover:text-indigo-600 focus:outline-none p-1">
+            
+            <svg id="eye-show" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
 
-                                <svg x-show="show" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                                </svg>
-                            </button>
-                        </div>
-                        <x-input-error :messages="$errors->get('password')" class="mt-2" />
-                    </div>
+            <svg id="eye-hide" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+            </svg>
+        </button>
+    </div>
+</div>
+
+<script>
+    function togglePasswordVisibility() {
+        const passwordInput = document.getElementById('password');
+        const eyeShow = document.getElementById('eye-show');
+        const eyeHide = document.getElementById('eye-hide');
+
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeShow.classList.add('hidden');
+            eyeHide.classList.remove('hidden');
+        } else {
+            passwordInput.type = 'password';
+            eyeShow.classList.remove('hidden');
+            eyeHide.classList.add('hidden');
+        }
+    }
+</script>
 
                     <div class="flex items-center ml-1">
                         <input id="remember_me" type="checkbox" name="remember" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
