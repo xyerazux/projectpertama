@@ -6,23 +6,31 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DashboardController;
 
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
+
+// PERBAIKAN DI SINI:
+// Jika buka domain utama, langsung lempar ke login
 Route::get('/', function () {
-    return view('login');
+    return redirect()->route('login');
 });
 
-// Semua rute di bawah ini butuh login (auth)
-Route::middleware('auth')->group(function () {
+// Semua rute di bawah ini butuh login (auth) dan verifikasi email (jika diaktifkan)
+Route::middleware(['auth', 'verified'])->group(function () {
     
     // DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // PROFILE (Rute Photo sudah dihapus)
+    // PROFILE
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::patch('/profile/priority', [ProfileController::class, 'updatePriority'])->name('profile.priority');
     
-    // TASKS (Utama dengan fitur Deadline, Priority, Status)
+    // TASKS (Utama)
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('/tasks/create', [TaskController::class, 'create'])->name('tasks.create');
     Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
@@ -44,6 +52,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
     Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+});
+
+// ROUTE EMERGENCY (Sangat berguna di Railway untuk bersihkan error 500)
+Route::get('/optimize', function() {
+    \Artisan::call('config:cache');
+    \Artisan::call('route:cache');
+    \Artisan::call('view:cache');
+    return "Web berhasil di-optimize!";
 });
 
 require __DIR__.'/auth.php';
