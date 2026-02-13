@@ -9,14 +9,14 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
+    public function up()
+{
+    if (!Schema::hasColumn('tasks', 'description')) {
         Schema::table('tasks', function (Blueprint $table) {
-        $table->text('description')->after('title')->nullable();
-        $table->string('link_attachment')->after('description')->nullable();
-    });
-
+            $table->text('description')->nullable()->after('title');
+        });
     }
+}
 
     /**
      * Reverse the migrations.
