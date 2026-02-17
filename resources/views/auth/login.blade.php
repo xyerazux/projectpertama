@@ -59,37 +59,37 @@
                placeholder="••••••••">
 
         <button type="button" 
-                onclick="togglePasswordVisibility()" 
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 hover:text-indigo-600 focus:outline-none p-1">
-            
-            <svg id="eye-show" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
+        onclick="togglePass()" 
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 hover:text-indigo-600 focus:outline-none p-1">
+    
+    <svg id="eye-open" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
 
-            <svg id="eye-hide" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-            </svg>
-        </button>
+    <svg id="eye-closed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+    </svg>
+</button>
     </div>
 </div>
 
 <script>
-    function togglePasswordVisibility() {
-        const passwordInput = document.getElementById('password');
-        const eyeShow = document.getElementById('eye-show');
-        const eyeHide = document.getElementById('eye-hide');
-
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            eyeShow.classList.add('hidden');
-            eyeHide.classList.remove('hidden');
-        } else {
-            passwordInput.type = 'password';
-            eyeShow.classList.remove('hidden');
-            eyeHide.classList.add('hidden');
-        }
+function togglePass() {
+    const input = document.getElementById('password');
+    const open = document.getElementById('eye-open');
+    const closed = document.getElementById('eye-closed');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        open.classList.add('hidden');
+        closed.classList.remove('hidden');
+    } else {
+        input.type = 'password';
+        open.classList.remove('hidden');
+        closed.classList.add('hidden');
     }
+}
 </script>
 
                     <div class="flex items-center ml-1">
