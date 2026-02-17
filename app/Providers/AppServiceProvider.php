@@ -6,6 +6,7 @@ use App\Models\Category;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL; // PENTING: Wajib di-import agar tidak error
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,25 +23,24 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Menangani panjang string database untuk versi MySQL lama jika perlu
         Schema::defaultStringLength(191);
 
-        if (config('app.env') === 'production') {
-            \URL::forceScheme('https');
+        if (config('app.env') === 'production' || config('app.env') === 'staging') {
+            URL::forceScheme('https');
         }
 
-        // View Composer untuk membagikan data kategori ke semua view
+
         View::composer('*', function ($view) {
             if (auth()->check()) {
                 $categories = Category::withCount(['tasks' => function($query) {
-                    $query->where('status', 'pending'); // Hanya hitung task yang belum selesai
+                    $query->where('status', 'pending'); 
                 }])
                 ->where('user_id', auth()->id())
                 ->get();
 
                 $view->with('categories', $categories);
             } else {
-                // Berikan array kosong jika belum login agar tidak error undefined variable
+                
                 $view->with('categories', collect());
             }
         }); 
