@@ -71,7 +71,7 @@ class TaskController extends Controller
             'title' => 'required|string|max:255',
             'category_id' => 'required',
             'deadline' => 'required|date',
-            'link_attachment' => 'nullable|url', // Tambahkan validasi URL
+            'link_attachment' => 'nullable|url',
         ]);
 
         $user = Auth::user();
@@ -84,7 +84,7 @@ class TaskController extends Controller
             'category_id' => $request->category_id,
             'title' => $request->title,
             'description' => $request->description,
-            'link_attachment' => $request->link_attachment, // Simpan ke database
+            'link_attachment' => $request->link_attachment,
             'priority' => $priority,
             'priority_color' => $request->priority_color,
             'status' => 'pending',
@@ -102,7 +102,7 @@ class TaskController extends Controller
             }
         }
 
-        return redirect()->route('tasks.index')->with('success', 'Task created!');
+        return redirect()->route('tasks.index')->with('success', 'Task created successfully!');
     }
 
     public function edit(Task $task)
@@ -123,7 +123,7 @@ class TaskController extends Controller
             'category_id' => 'required|exists:categories,id',
             'deadline' => 'required|date',
             'status' => 'required|in:pending,completed',
-            'link_attachment' => 'nullable|url', // Tambahkan validasi URL
+            'link_attachment' => 'nullable|url',
         ]);
 
         $priority = ($user->priority_mode === 'manual') 
@@ -135,7 +135,7 @@ class TaskController extends Controller
             'category_id' => $request->category_id,
             'deadline' => $request->deadline,
             'description' => $request->description,
-            'link_attachment' => $request->link_attachment, // Update data link
+            'link_attachment' => $request->link_attachment,
             'priority' => $priority,
             'priority_color' => ($user->priority_mode === 'manual') ? $request->priority_color : $task->priority_color,
             'status' => $request->status,
@@ -164,7 +164,7 @@ class TaskController extends Controller
             }
         }
 
-        return redirect()->route('tasks.index')->with('success', 'Task updated!');
+        return redirect()->route('tasks.index')->with('success', 'Task updated successfully!');
     }
 
     public function complete(Task $task)
@@ -178,7 +178,7 @@ class TaskController extends Controller
     {
         $this->authorizeOwner($task);
         $task->delete();
-        return redirect()->route('tasks.index')->with('success', 'Task deleted successfully!');
+        return redirect()->route('tasks.index')->with('success', 'Task moved to trash!');
     }
 
     public function trash()
