@@ -119,7 +119,8 @@
                             <tr class="hover:bg-gray-50/50 transition group">
                                 <td class="py-4 px-6 text-center">
                                     <div class="flex justify-center">
-                                        <span class="w-2.5 h-2.5 rounded-full {{ $task->status === 'done' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.4)]' }}"></span>
+                                        {{-- Perbaikan: Cek status 'completed' bukan 'done' --}}
+                                        <span class="w-2.5 h-2.5 rounded-full {{ $task->status === 'completed' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.4)]' }}"></span>
                                     </div>
                                 </td>
                                 <td class="py-4 px-6">
