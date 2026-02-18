@@ -46,6 +46,16 @@ class TaskController extends Controller
         return view('tasks.index', compact('tasks', 'categories'));
     }
 
+    // LIST TASK SELESAI
+    public function completed()
+    {
+        $tasks = Task::where('user_id', Auth::id())
+                     ->where('status', 'completed')
+                     ->latest()
+                     ->get();
+        return view('tasks.completed', compact('tasks'));
+    }
+
     public function create()
     {
         $categories = Category::where('user_id', Auth::id())->get();
@@ -167,6 +177,7 @@ class TaskController extends Controller
         return redirect()->route('tasks.index')->with('success', 'Task updated successfully!');
     }
 
+    // PROSES MARK AS DONE
     public function complete(Task $task)
     {
         $this->authorizeOwner($task);
