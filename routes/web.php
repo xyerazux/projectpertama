@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SubtaskController;
+use App\Http\Controllers\RoadmapController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -40,6 +41,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // CATEGORIES
     Route::resource('categories', CategoryController::class);
+
+    // ROADMAP
+    Route::get('/roadmap', [RoadmapController::class, 'index'])->name('roadmap.index');
+    Route::post('/roadmap', [RoadmapController::class, 'store'])->name('roadmap.store');
+    Route::delete('/roadmap/{roadmap}', [RoadmapController::class, 'destroy'])->name('roadmap.destroy');
+    
+    // Roadmap Steps
+    Route::get('/roadmap', [RoadmapController::class, 'index'])->name('roadmap.index');
+    Route::post('/roadmap/{roadmap}/steps', [RoadmapController::class, 'storeStep'])->name('roadmap.steps.store');
+    Route::patch('/roadmap-steps/{step}/toggle', [RoadmapController::class, 'toggleStep'])->name('roadmap.steps.toggle');
+    Route::patch('/roadmap-steps/{step}', [RoadmapController::class, 'updateStep'])->name('roadmap.steps.update');
+    Route::delete('/roadmap-steps/{step}', [RoadmapController::class, 'destroyStep'])->name('roadmap.steps.destroy');
 });
 
 // EMERGENCY OPTIMIZE

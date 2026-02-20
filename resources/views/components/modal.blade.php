@@ -18,10 +18,8 @@ $maxWidth = [
     x-data="{
         show: @js($show),
         focusables() {
-            // All focusable element types...
             let selector = 'a, button, input:not([type=\'hidden\']), textarea, select, details, [tabindex]:not([tabindex=\'-1\'])'
             return [...$el.querySelectorAll(selector)]
-                // All non-disabled elements...
                 .filter(el => ! el.hasAttribute('disabled'))
         },
         firstFocusable() { return this.focusables()[0] },
@@ -47,7 +45,7 @@ $maxWidth = [
     x-on:keydown.shift.tab.prevent="prevFocusable().focus()"
     x-show="show"
     class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50"
-    style="display: {{ $show ? 'block' : 'none' }};"
+    x-cloak
 >
     <div
         x-show="show"

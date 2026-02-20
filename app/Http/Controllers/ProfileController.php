@@ -55,7 +55,8 @@ class ProfileController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return Redirect::to('/');
+        // Kirim status sukses ke halaman login
+        return redirect()->route('login')->with('status', 'Akun Anda berhasil dihapus secara permanen.');
     }
 
     /**

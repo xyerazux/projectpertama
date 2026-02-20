@@ -193,10 +193,12 @@ class TaskController extends Controller
     }
 
     public function trash()
-    {
-        $tasks = Task::onlyTrashed()->where('user_id', Auth::id())->latest()->get();
-        return view('tasks.trash', compact('tasks'));
-    }
+{
+    // Gunakan paginate(10) bukan get()
+    $tasks = Task::onlyTrashed()->where('user_id', auth()->id())->paginate(10);
+    
+    return view('tasks.trash', compact('tasks'));
+}
 
     public function restore($id)
     {

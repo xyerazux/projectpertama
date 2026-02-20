@@ -37,4 +37,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Task::class);
     }
+
+    public function roadmaps(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Roadmap::class);
+    }
 }

@@ -6,6 +6,11 @@
 
 import './bootstrap';
 
+// TAMBAHKAN INI: Inisialisasi Alpine.js agar Modal & Dropdown berfungsi
+import Alpine from 'alpinejs';
+window.Alpine = Alpine;
+Alpine.start();
+
 /**
  * Next, we will create a fresh React component instance and attach it to
  * the page. Then, you may begin adding components to this application
