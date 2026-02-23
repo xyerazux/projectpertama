@@ -92,56 +92,69 @@ class TaskController extends Controller
     // simpan task baru
     public function store(Request $request)
     {
-        // PENCEGAHAN SPAM BACKEND VIA SESSION (Lebih Cepat dari Cache Lock untuk form submit)
-        if (session()->has('last_task_created_time')) {
-            $lastCreated = session('last_task_created_time');
-            // Jika request masuk kurang dari 3 detik dari request sebelumnya, tolak!
-            if (now()->diffInSeconds($lastCreated) < 3) {
-                return back()->with('error', '⚠️ Sedang memproses, jangan tekan tombol berkali-kali.');
-            }
+        // 1. PENCEGAHAN SPAM MENGGUNAKAN INTEGER TIMESTAMP (Aman dari Error 500 Object Serialization)
+        $lastCreated = session('last_task_time', 0);
+        
+        // Jika selisih waktu dari request terakhir kurang dari 3 detik, tolak!
+        if (time() - $lastCreated < 3) {
+            return back()->with('error', '⚠️ Sedang memproses, jangan tekan tombol berkali-kali.');
         }
         
-        // Catat waktu klik saat ini ke session
-        session(['last_task_created_time' => now()]);
+        // Langsung set session lock saat request masuk
+        session(['last_task_time' => time()]);
+
+        // 2. VALIDASI MANUAL (Lebih aman dari try-catch exception)
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'title' => 'required|string|min:2|max:255',
+            'description' => 'nullable|string|max:1000',
+            'link_attachment' => 'nullable|url',
+            'category_id' => 'required|exists:categories,id',
+            'deadline' => 'required|date',
+            'priority' => 'nullable|in:low,medium,high',
+            'subtasks' => 'nullable|array',
+            'subtasks.*' => 'nullable|string|max:255',
+        ], [
+            'title.required' => 'Task title wajib diisi',
+            'title.min' => 'Title minimal 2 karakter',
+            'category_id.exists' => 'Kategori tidak valid',
+            'deadline.date' => 'Format tanggal tidak valid',
+        ]);
+
+        if ($validator->fails()) {
+            // Jika form salah (misal judul kosong), hapus kunci session agar user bisa langsung revisi
+            session()->forget('last_task_time');
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $validated = $validator->validated();
 
         try {
-            // validasi input - server-side
-            $validated = $request->validate([
-                'title' => 'required|string|min:2|max:255',
-                'description' => 'nullable|string|max:1000',
-                'link_attachment' => 'nullable|url',
-                'category_id' => 'required|exists:categories,id',
-                'deadline' => 'required|date',
-                'priority' => 'nullable|in:low,medium,high',
-                'subtasks' => 'nullable|array',
-                'subtasks.*' => 'nullable|string|max:255',
-            ], [
-                'title.required' => 'Task title wajib diisi',
-                'title.min' => 'Title minimal 2 karakter',
-                'category_id.exists' => 'Kategori tidak valid',
-                'deadline.date' => 'Format tanggal tidak valid',
-            ]);
-
-            // sanitasi input
+            // 3. SANITASI INPUT YANG AMAN (Mencegah "Undefined Array Key" Error 500)
             $validated['title'] = strip_tags(trim($validated['title']));
-            $validated['description'] = $validated['description'] 
-                ? strip_tags(trim($validated['description'])) 
-                : null;
-            $validated['link_attachment'] = $validated['link_attachment'] 
-                ? filter_var(trim($validated['link_attachment']), FILTER_VALIDATE_URL) 
-                : null;
+            
+            if (!empty($validated['description'])) {
+                $validated['description'] = strip_tags(trim($validated['description']));
+            } else {
+                $validated['description'] = null;
+            }
 
-            // auto assign user + status default
+            if (!empty($validated['link_attachment'])) {
+                $validated['link_attachment'] = filter_var(trim($validated['link_attachment']), FILTER_VALIDATE_URL) ?: null;
+            } else {
+                $validated['link_attachment'] = null;
+            }
+
+            // Auto assign user + status default
             $validated['user_id'] = auth()->id();
             $validated['status'] = 'pending';
 
-            // simpan task
+            // 4. SIMPAN TASK KE DATABASE
             $task = auth()->user()->tasks()->create($validated);
 
-            // simpan subtasks kalau ada
+            // 5. SIMPAN SUBTASKS (Jika ada)
             if (!empty($validated['subtasks'])) {
                 foreach ($validated['subtasks'] as $subtaskTitle) {
-                    if (!empty($subtaskTitle)) {
+                    if (!empty(trim($subtaskTitle))) {
                         $task->subtasks()->create([
                             'title' => strip_tags(trim($subtaskTitle)),
                             'is_completed' => false,
@@ -152,32 +165,16 @@ class TaskController extends Controller
 
             return redirect()->route('tasks.index')->with('success', 'Task created!');
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // Jika validasi gagal, hapus session agar user bisa langsung submit ulang tanpa nunggu 3 detik
-            session()->forget('last_task_created_time');
-            return back()->withErrors($e->errors())->withInput();
-            
-        } catch (\Illuminate\Database\QueryException $e) {
-            \Log::error('Task DB error', [
-                'user_id' => auth()->id(),
-                'error' => $e->getMessage(),
-            ]);
-            return back()->with('error', ' Database error. Coba lagi.');
-            
-        } catch (\Illuminate\Database\Eloquent\MassAssignmentException $e) {
-            \Log::error('Task MassAssignment error', [
-                'user_id' => auth()->id(),
-                'error' => $e->getMessage(),
-            ]);
-            return back()->with('error', ' Configuration error. Hubungi admin.');
-            
         } catch (\Exception $e) {
+            // Jika terjadi error sistem/database, catat errornya dan buka kembali kuncinya
+            session()->forget('last_task_time');
+            
             \Log::error('Task creation failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
-            return back()->with('error', ' Gagal membuat task. Coba lagi.');
+            
+            return back()->with('error', 'Gagal menyimpan ke database. Hubungi admin atau coba lagi.');
         }
     }
 
