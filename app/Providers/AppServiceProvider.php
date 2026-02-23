@@ -44,5 +44,11 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('categories', collect());
             }
         }); 
+
+         if (env('APP_ENV') === 'production') {
+        \URL::forceScheme('https');
     }
+    }
+
+    
 }

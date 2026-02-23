@@ -5,104 +5,198 @@ namespace App\Http\Controllers;
 use App\Models\Roadmap;
 use App\Models\RoadmapStep;
 use Illuminate\Http\Request;
-use Illuminate\Http\RedirectResponse; 
-use Illuminate\View\View; 
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class RoadmapController extends Controller
 {
+    /**
+     * Display all roadmaps for authenticated user
+     */
     public function index(): View
     {
-        $roadmaps = auth()->user()->roadmaps()->with('steps')->orderBy('target_date', 'asc')->get();
-        return view('roadmaps.index', compact('roadmaps'));
+        $roadmaps = Auth::user()->roadmaps()
+            ->with('steps')
+            ->orderBy('target_date', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('roadmap.index', compact('roadmaps'));
     }
 
+    /**
+     * Store new roadmap - ✅ Essential validation only
+     */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'status' => 'required|in:planned,in_progress,completed,on_hold',
-            'target_date' => 'nullable|date',
+        // ✅ ESSENTIAL: Input validation
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'min:3', 'max:255'],
+            'description' => 'nullable|string|max:1000',
+            'status' => 'required|in:planned,in_progress,on_hold,completed',
+            'target_date' => 'nullable|date|after_or_equal:today',
+        ], [
+            'title.required' => 'Goal title is required',
+            'title.min' => 'Title must be at least 3 characters',
+            'status.required' => 'Status is required',
         ]);
 
-        auth()->user()->roadmaps()->create($request->all());
+        // ✅ ESSENTIAL: Auto-assign user_id + sanitize
+        $validated['user_id'] = Auth::id();
+        $validated['title'] = strip_tags(trim($validated['title']));
+        $validated['description'] = $validated['description'] ? strip_tags(trim($validated['description'])) : null;
 
-        return back()->with('success', 'Goal berhasil ditambahkan!');
+        try {
+            Auth::user()->roadmaps()->create($validated);
+            return back()->with('success', '🎯 Goal created successfully!');
+        } catch (\Exception $e) {
+            Log::error('Roadmap creation failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', '❌ Failed to create goal. Please try again.');
+        }
+    }
+
+    /**
+     * Store new step/task - ✅ Essential validation only
+     */
+    public function storeStep(Request $request, Roadmap $roadmap): RedirectResponse
+    {
+        // ✅ ESSENTIAL: Ownership check
+        if ($roadmap->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // ✅ ESSENTIAL: Input validation
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'min:2', 'max:255'],
+            'priority' => 'nullable|in:high,medium,low',
+            'due_date' => 'nullable|date',
+            'description' => 'nullable|string|max:1000',
+            'category' => 'nullable|string|max:50',
+        ]);
+
+        // ✅ ESSENTIAL: Sanitize
+        $validated['title'] = strip_tags(trim($validated['title']));
+        $validated['description'] = $validated['description'] ? strip_tags(trim($validated['description'])) : null;
+        $validated['category'] = $validated['category'] ? ucfirst(trim($validated['category'])) : null;
+
+        try {
+            $roadmap->steps()->create([
+                'title' => $validated['title'],
+                'is_completed' => false,
+                'priority' => $validated['priority'] ?? 'medium',
+                'due_date' => $validated['due_date'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'category' => $validated['category'] ?? null,
+                'progress' => 0,
+            ]);
+
+            return back()->with('success', ' Task added successfully!');
+        } catch (\Exception $e) {
+            Log::error('Step creation failed', [
+                'user_id' => Auth::id(),
+                'roadmap_id' => $roadmap->id,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', '❌ Failed to add task.');
+        }
     }
 
     public function destroy(Roadmap $roadmap): RedirectResponse
     {
-        if ($roadmap->user_id !== auth()->id()) {
-            abort(403);
+        // ✅ ESSENTIAL: Ownership check
+        if ($roadmap->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
         }
 
-        $roadmap->delete();
-        return back()->with('success', 'Goal berhasil dihapus');
+        try {
+            $roadmap->steps()->delete();
+            $roadmap->delete();
+            return back()->with('success', '🗑️ Roadmap deleted!');
+        } catch (\Exception $e) {
+            Log::error('Roadmap delete failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', '❌ Failed to delete roadmap.');
+        }
     }
-
-    public function storeStep(Request $request, Roadmap $roadmap): RedirectResponse
-{
-    $request->validate([
-        'title' => 'required|string|max:255',
-        'priority' => 'nullable|in:high,medium,low',
-        'due_date' => 'nullable|date',
-        'description' => 'nullable|string|max:1000',
-        'category' => 'nullable|string|max:50',
-    ]);
-    
-    $roadmap->steps()->create([
-        'title' => $request->title,
-        'is_completed' => false,
-        'priority' => $request->priority ?? 'medium',
-        'due_date' => $request->due_date,
-        'description' => $request->description,
-        'category' => $request->category,
-        'progress' => 0,
-    ]);
-
-    return back()->with('success', 'Task berhasil ditambahkan!');
-}
 
     public function toggleStep(RoadmapStep $step): RedirectResponse
-{
-    $step->update([
-        'is_completed' => !$step->is_completed,
-        'progress' => $step->is_completed ? 0 : 100,
-    ]);
+    {
+        // ✅ ESSENTIAL: Ownership check
+        if ($step->roadmap->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
 
-    return back()->with('success', 'Task updated!');
-}
-public function updateStep(Request $request, RoadmapStep $step): RedirectResponse
-{
-    // Security: Pastikan user hanya bisa edit task miliknya
-    if ($step->roadmap->user_id !== auth()->id()) {
-        abort(403);
+        try {
+            $step->update([
+                'is_completed' => !$step->is_completed,
+                'progress' => $step->is_completed ? 0 : 100,
+            ]);
+            return back()->with('success', '🔄 Task status updated!');
+        } catch (\Exception $e) {
+            Log::error('Step toggle failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', '❌ Failed to update task.');
+        }
     }
 
-    $request->validate([
-        'title' => 'required|string|max:255',
-        'priority' => 'nullable|in:high,medium,low',
-        'due_date' => 'nullable|date',
-        'description' => 'nullable|string|max:1000',
-        'category' => 'nullable|string|max:50',
-        'progress' => 'nullable|integer|min:0|max:100',
-    ]);
+    public function updateStep(Request $request, RoadmapStep $step): RedirectResponse
+    {
+        // ✅ ESSENTIAL: Ownership check
+        if ($step->roadmap->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
 
-    $step->update($request->only([
-        'title', 'priority', 'due_date', 'description', 'category', 'progress'
-    ]));
+        // ✅ ESSENTIAL: Input validation
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'min:2', 'max:255'],
+            'priority' => 'nullable|in:high,medium,low',
+            'due_date' => 'nullable|date',
+            'description' => 'nullable|string|max:1000',
+            'category' => 'nullable|string|max:50',
+            'progress' => 'nullable|integer|min:0|max:100',
+        ]);
 
-    return back()->with('success', 'Task updated successfully!');
-}
-// ✅ Method untuk hapus task/step saja
-public function destroyStep(RoadmapStep $step): RedirectResponse
-{
-    if ($step->roadmap->user_id !== auth()->id()) {
-        abort(403);
+        $validated['title'] = strip_tags(trim($validated['title']));
+        $validated['description'] = $validated['description'] ? strip_tags(trim($validated['description'])) : null;
+        $validated['category'] = $validated['category'] ? ucfirst(trim($validated['category'])) : null;
+
+        try {
+            $step->update($validated);
+            return back()->with('success', ' Task updated!');
+        } catch (\Exception $e) {
+            Log::error('Step update failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', ' Failed to update task.');
+        }
     }
 
-    $step->delete();
+    public function destroyStep(RoadmapStep $step): RedirectResponse
+    {
+        // ✅ ESSENTIAL: Ownership check
+        if ($step->roadmap->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
 
-    return back()->with('success', 'Task deleted successfully!');
-}
-           
+        try {
+            $step->delete();
+            return back()->with('success', '🗑️ Task deleted!');
+        } catch (\Exception $e) {
+            Log::error('Step delete failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', '❌ Failed to delete task.');
+        }
+    }
 }

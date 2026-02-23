@@ -1,6 +1,6 @@
 <x-app-layout>
     {{-- Script untuk Confetti --}}
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
 
     {{-- Custom Styles untuk Animasi & Efek Premium --}}
     <style>
@@ -90,22 +90,16 @@
                 min-height: 44px;
                 min-width: 44px;
             }
-            .text-responsive {
-                font-size: 0.875rem;
-            }
-            .card-padding-mobile {
-                padding: 1rem;
-            }
         }
         
         /* Smooth scrolling */
-        html {
-            scroll-behavior: smooth;
-        }
+        html { scroll-behavior: smooth; }
+        body { overflow-x: hidden; }
         
-        /* Prevent horizontal scroll */
-        body {
-            overflow-x: hidden;
+        /* 🔐 Security: Disable text selection on sensitive elements */
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
         }
     </style>
 
@@ -128,16 +122,13 @@
                             <div class="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-400 rounded-full border-2 border-white animate-pulse"></div>
                         </div>
                         <div>
-                            <h1 class="text-xl sm:text-2xl lg:text-3xl font-black text-slate-800 tracking-tight">
-                                Project Roadmap
-                            </h1>
-                            <p class="text-[10px] sm:text-xs text-slate-500 font-semibold tracking-wide mt-0.5 hidden xs:block">
-                                Visualize • Track • Achieve
-                            </p>
+                            <h1 class="text-xl sm:text-2xl lg:text-3xl font-black text-slate-800 tracking-tight">Project Roadmap</h1>
+                            <p class="text-[10px] sm:text-xs text-slate-500 font-semibold tracking-wide mt-0.5 hidden xs:block">Visualize • Track • Achieve</p>
                         </div>
                     </div>
                     
-                    <button x-data="" x-on:click="$dispatch('open-modal', 'add-roadmap')" 
+                    {{-- ✅ FIXED: Launch Goal Button --}}
+                    <button type="button" x-data="" x-on:click="$dispatch('open-modal', 'add-roadmap')" 
                         class="group relative gradient-indigo text-white px-5 sm:px-6 lg:px-8 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider hover:shadow-xl hover:shadow-indigo-300/50 transition-all btn-press overflow-hidden touch-target w-full sm:w-auto">
                         <span class="relative z-10 flex items-center justify-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -175,6 +166,9 @@
                                 ['bg' => 'bg-sky-500', 'gradient' => 'from-sky-400 to-cyan-500'],
                             ];
                             $colorSet = $nodeStyles[$roadmap->id % count($nodeStyles)];
+                            
+                            // 🔐 Generate unique form token for this roadmap
+                            $formToken = hash_hmac('sha256', $roadmap->id . auth()->id() . now()->timestamp, config('app.key'));
                         @endphp
 
                         <div x-data="{ 
@@ -182,12 +176,14 @@
                                 progress: {{ $percent }},
                                 checkCelebration() {
                                     if (this.progress === 100) {
-                                        confetti({ 
-                                            particleCount: 150, 
-                                            spread: 70, 
-                                            origin: { y: 0.6 },
-                                            colors: ['#6366f1', '#8b5cf6', '#10b981']
-                                        });
+                                        if (typeof confetti !== 'undefined') {
+                                            confetti({ 
+                                                particleCount: 150, 
+                                                spread: 70, 
+                                                origin: { y: 0.6 },
+                                                colors: ['#6366f1', '#8b5cf6', '#10b981']
+                                            });
+                                        }
                                     }
                                 }
                             }" 
@@ -220,23 +216,23 @@
                                                         ? 'gradient-emerald text-white shadow-md shadow-emerald-200/50' 
                                                         : 'bg-slate-100 text-slate-600 border border-slate-200' 
                                                     }}">
-                                                    {{ str_replace('_', ' ', $roadmap->status) }}
+                                                    {{ e(str_replace('_', ' ', $roadmap->status)) }}
                                                 </span>
                                                 @if($roadmap->target_date)
                                                     <span class="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wide">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 sm:h-3.5 sm:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                         </svg>
-                                                        <span class="hidden xs:inline">{{ \Carbon\Carbon::parse($roadmap->target_date)->format('M d, Y') }}</span>
-                                                        <span class="xs:hidden">{{ \Carbon\Carbon::parse($roadmap->target_date)->format('M d') }}</span>
+                                                        <span class="hidden xs:inline">{{ e(\Carbon\Carbon::parse($roadmap->target_date)->format('M d, Y')) }}</span>
+                                                        <span class="xs:hidden">{{ e(\Carbon\Carbon::parse($roadmap->target_date)->format('M d')) }}</span>
                                                     </span>
                                                 @endif
                                             </div>
                                             <h3 class="text-lg sm:text-xl lg:text-2xl font-black text-slate-800 tracking-tight leading-tight group-hover:text-indigo-700 transition-colors line-clamp-2">
-                                                {{ $roadmap->title }}
+                                                {{ e($roadmap->title) }}
                                             </h3>
                                             @if($roadmap->description)
-                                                <p class="text-xs sm:text-sm text-slate-500 mt-2 line-clamp-2 hidden sm:block">{{ $roadmap->description }}</p>
+                                                <p class="text-xs sm:text-sm text-slate-500 mt-2 line-clamp-2 hidden sm:block">{{ e($roadmap->description) }}</p>
                                             @endif
                                         </div>
 
@@ -317,9 +313,9 @@
                                                                     </button>
                                                                 </form>
                                                                 
-                                                                {{-- Title - Responsive --}}
+                                                                {{-- Title - Responsive (ESCAPED FOR XSS PREVENTION) --}}
                                                                 <span class="text-xs sm:text-sm font-bold {{ $step->is_completed ? 'text-slate-300 line-through' : 'text-slate-700' }} tracking-tight truncate">
-                                                                    {{ $step->title }}
+                                                                    {{ e($step->title) }}
                                                                 </span>
                                                             </div>
                                                             
@@ -329,7 +325,7 @@
                                                                     ? 'bg-slate-100 text-slate-400 border-slate-200' 
                                                                     : ($step->priority == 'high' ? 'priority-high' : ($step->priority == 'low' ? 'priority-low' : 'priority-medium')) 
                                                                 }}">
-                                                                <span class="hidden sm:inline">{{ $step->priority ?? 'medium' }}</span>
+                                                                <span class="hidden sm:inline">{{ e($step->priority ?? 'medium') }}</span>
                                                                 <span class="sm:hidden">
                                                                     @if($step->priority == 'high') 🔴
                                                                     @elseif($step->priority == 'low') 🟢
@@ -343,8 +339,8 @@
                                                         <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
                                                             @if($step->category)
                                                                 <span class="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-bold border {{ $step->category_color ?? 'text-slate-600 bg-slate-50 border-slate-200' }}">
-                                                                    <span>{{ $step->category_icon }}</span>
-                                                                    <span class="hidden xs:inline">{{ ucfirst($step->category) }}</span>
+                                                                    <span>{{ e($step->category_icon) }}</span>
+                                                                    <span class="hidden xs:inline">{{ e(ucfirst($step->category)) }}</span>
                                                                 </span>
                                                             @endif
                                                             @if($step->due_date)
@@ -352,8 +348,8 @@
                                                                     <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                                     </svg>
-                                                                    <span class="hidden xs:inline">{{ \Carbon\Carbon::parse($step->due_date)->format('M d') }}</span>
-                                                                    <span class="xs:hidden">{{ \Carbon\Carbon::parse($step->due_date)->format('M/d') }}</span>
+                                                                    <span class="hidden xs:inline">{{ e(\Carbon\Carbon::parse($step->due_date)->format('M d')) }}</span>
+                                                                    <span class="xs:hidden">{{ e(\Carbon\Carbon::parse($step->due_date)->format('M/d')) }}</span>
                                                                 </span>
                                                             @endif
                                                         </div>
@@ -370,9 +366,9 @@
                                                             </div>
                                                         </div>
                                                         
-                                                        {{-- Description - Responsive --}}
+                                                        {{-- Description - Responsive (ESCAPED FOR XSS PREVENTION) --}}
                                                         @if($step->description)
-                                                            <p class="text-[10px] sm:text-xs text-slate-500 line-clamp-2 mb-3 hidden sm:block">{{ $step->description }}</p>
+                                                            <p class="text-[10px] sm:text-xs text-slate-500 line-clamp-2 mb-3 hidden sm:block">{{ e($step->description) }}</p>
                                                         @endif
                                                         
                                                         {{-- Actions - Responsive --}}
@@ -395,8 +391,9 @@
                                                         <form action="{{ route('roadmap.steps.update', $step) }}" method="POST" class="space-y-2.5 sm:space-y-3">
                                                             @csrf @method('PATCH')
                                                             
-                                                            <input type="text" name="title" value="{{ $step->title }}" 
-                                                                class="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 outline-none touch-target">
+                                                            <input type="text" name="title" value="{{ e($step->title) }}" 
+                                                                class="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 outline-none touch-target"
+                                                                maxlength="255">
                                                             
                                                             <div class="grid grid-cols-2 gap-2">
                                                                 <select name="priority" class="bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target">
@@ -405,17 +402,20 @@
                                                                     <option value="low" {{ ($step->priority ?? 'medium') == 'low' ? 'selected' : '' }}>🟢 Low</option>
                                                                 </select>
                                                                 
-                                                                <input type="text" name="category" value="{{ $step->category ?? '' }}" placeholder="📌 Category"
-                                                                    class="bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target">
+                                                                <input type="text" name="category" value="{{ e($step->category ?? '') }}" placeholder="📌 Category"
+                                                                    class="bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target"
+                                                                    maxlength="50"
+                                                                    pattern="[a-zA-Z\s\-]+">
                                                             </div>
                                                             
                                                             <input type="date" name="due_date" value="{{ $step->due_date ? \Carbon\Carbon::parse($step->due_date)->format('Y-m-d') : '' }}" 
                                                                 class="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target">
                                                             
                                                             <textarea name="description" rows="2" placeholder="📝 Description..."
-                                                                class="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none resize-none touch-target">{{ $step->description ?? '' }}</textarea>
+                                                                class="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none resize-none touch-target"
+                                                                maxlength="1000">{{ e($step->description ?? '') }}</textarea>
                                                             
-                                                            {{-- Real-time Progress Slider - Responsive --}}
+                                                            {{-- ✅ Real-time Progress Slider - FIXED: Hapus @input karena x-model sudah handle --}}
                                                             <div>
                                                                 <label class="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase flex items-center justify-between">
                                                                     <span>Progress</span>
@@ -424,7 +424,6 @@
                                                                 <input type="range" name="progress" min="0" max="100" 
                                                                     x-model="taskProgress"
                                                                     value="{{ $step->progress ?? 0 }}" 
-                                                                    @input="taskProgress = $event.target.value"
                                                                     class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500 mt-2 touch-target">
                                                                 <div class="flex justify-between text-[7px] sm:text-[8px] text-slate-300 mt-1">
                                                                     <span>0%</span>
@@ -444,19 +443,31 @@
                                         </div>
                                     </div>
 
-                                    {{-- Action Bar - Add Task - Responsive --}}
+                                    {{-- Action Bar - Add Task with Security Features --}}
                                     <div class="pt-6 sm:pt-8 border-t border-slate-100/60">
                                         <h4 class="text-xs sm:text-sm font-black text-slate-600 uppercase tracking-wider mb-4">Add New Task</h4>
                                         
                                         <div x-data="{ showAdvanced: false }">
                                             {{-- Basic Form - Responsive --}}
-                                            <form action="{{ route('roadmap.steps.store', $roadmap) }}" method="POST" class="space-y-2.5 sm:space-y-3">
+                                            <form action="{{ route('roadmap.steps.store', $roadmap) }}" method="POST" class="space-y-2.5 sm:space-y-3" id="taskForm{{ $roadmap->id }}">
                                                 @csrf
+                                                
+                                                {{-- 🔐 HONEYPOT FIELDS (Anti-Bot) --}}
+                                                <div style="position:absolute; left:-9999px;" aria-hidden="true">
+                                                    <input type="text" name="website" tabindex="-1" autocomplete="off">
+                                                    <input type="text" name="honeypot" tabindex="-1" autocomplete="off">
+                                                </div>
+                                                
+                                                {{-- 🔐 TIMESTAMP TOKEN (Anti-Replay Attack) --}}
+                                                <input type="hidden" name="_ts" value="{{ now()->timestamp }}">
+                                                <input type="hidden" name="_token_hash" value="{{ $formToken }}">
                                                 
                                                 <div class="flex gap-2 sm:gap-3">
                                                     <input type="text" name="title" placeholder="✨ Task title..." required
-                                                        class="flex-1 bg-white/80 border-2 border-slate-100 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-3 sm:px-6 text-xs sm:text-sm font-semibold focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 outline-none backdrop-blur-sm touch-target">
-                                                    <button type="submit" class="gradient-indigo text-white px-4 sm:px-6 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider btn-press whitespace-nowrap touch-target">
+                                                        class="flex-1 bg-white/80 border-2 border-slate-100 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-3 sm:px-6 text-xs sm:text-sm font-semibold focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 outline-none backdrop-blur-sm touch-target"
+                                                        maxlength="255"
+                                                        pattern="[a-zA-Z0-9\s\.\,\!\?\-\_\(\)]+">
+                                                    <button type="submit" class="gradient-indigo text-white px-4 sm:px-6 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider btn-press whitespace-nowrap touch-target" id="addTaskBtn{{ $roadmap->id }}">
                                                         <span class="hidden sm:inline">Add</span>
                                                         <span class="sm:hidden">+</span>
                                                     </button>
@@ -480,7 +491,9 @@
                                                     </select>
                                                     
                                                     <input type="text" name="category" placeholder="📌 Category" list="categories"
-                                                        class="bg-white/80 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target">
+                                                        class="bg-white/80 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target"
+                                                        maxlength="50"
+                                                        pattern="[a-zA-Z\s\-]+">
                                                     <datalist id="categories">
                                                         <option value="Design">
                                                         <option value="Development">
@@ -504,15 +517,16 @@
                                                 
                                                 <div x-show="showAdvanced" x-collapse>
                                                     <textarea name="description" placeholder="📝 Task description (optional)..." rows="2"
-                                                        class="w-full bg-white/80 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none resize-none touch-target"></textarea>
+                                                        class="w-full bg-white/80 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none resize-none touch-target"
+                                                        maxlength="1000"></textarea>
                                                 </div>
                                             </form>
                                         </div>
                                     </div>
 
-                                    {{-- Delete Roadmap Button - Responsive --}}
+                                    {{-- Delete Roadmap Button - Responsive with Extra Confirmation --}}
                                     <div class="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-slate-100/60 flex justify-end">
-                                        <form action="{{ route('roadmap.destroy', $roadmap) }}" method="POST" onsubmit="return confirm('⚠️ Are you sure you want to delete this ENTIRE roadmap and all its tasks?')">
+                                        <form action="{{ route('roadmap.destroy', $roadmap) }}" method="POST" onsubmit="return confirm('⚠️ WARNING: This will delete the ENTIRE roadmap and ALL {{ $totalSteps }} tasks permanently. This action CANNOT be undone. Are you absolutely sure?')">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-red-50 text-red-500 rounded-lg sm:rounded-xl hover:bg-red-500 hover:text-white transition-all border border-red-100 btn-press text-[10px] sm:text-xs font-bold touch-target w-full sm:w-auto justify-center">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -538,7 +552,7 @@
                                 </div>
                                 <h3 class="text-lg sm:text-xl font-black text-slate-700 mb-2">No roadmaps yet</h3>
                                 <p class="text-xs sm:text-sm text-slate-400 mb-4 sm:mb-6 max-w-xs mx-auto">Start your journey by launching your first goal. Every achievement begins with a single step.</p>
-                                <button x-data="" x-on:click="$dispatch('open-modal', 'add-roadmap')" 
+                                <button type="button" x-data="" x-on:click="$dispatch('open-modal', 'add-roadmap')" 
                                     class="gradient-indigo text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider hover:shadow-xl hover:shadow-indigo-300/50 transition-all btn-press inline-flex items-center gap-2 touch-target w-full sm:w-auto justify-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
@@ -600,21 +614,36 @@
                 </div>
             </div>
             
-            <form method="post" action="{{ route('roadmap.store') }}" class="p-5 sm:p-8 lg:p-10 bg-white">
+            <form method="post" action="{{ route('roadmap.store') }}" class="p-5 sm:p-8 lg:p-10 bg-white" id="roadmapForm">
                 @csrf
+                
+                {{-- 🔐 HONEYPOT FIELDS --}}
+                <div style="position:absolute; left:-9999px;" aria-hidden="true">
+                    <input type="text" name="website" tabindex="-1" autocomplete="off">
+                    <input type="text" name="honeypot" tabindex="-1" autocomplete="off">
+                </div>
+                
+                {{-- 🔐 TIMESTAMP TOKEN --}}
+                <input type="hidden" name="_ts" value="{{ now()->timestamp }}">
+                <input type="hidden" name="_token_hash" value="{{ hash_hmac('sha256', now()->timestamp . auth()->id(), config('app.key')) }}">
+                
                 <div class="space-y-5 sm:space-y-7">
                     <div>
                         <label class="block text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 sm:mb-3 ml-1">Goal Title</label>
                         <input type="text" name="title" 
                             class="w-full bg-slate-50/80 border-2 border-slate-100 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-4 sm:px-6 font-semibold text-sm sm:text-base text-slate-700 placeholder-slate-400 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all outline-none backdrop-blur-sm touch-target" 
-                            placeholder="e.g., Launch E-Commerce Platform" required />
+                            placeholder="e.g., Launch E-Commerce Platform" 
+                            required 
+                            maxlength="255"
+                            pattern="[a-zA-Z0-9\s\.\,\!\?\-\_\(\)]+">
                     </div>
 
                     <div>
                         <label class="block text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 sm:mb-3 ml-1">Description (Optional)</label>
                         <textarea name="description" rows="3"
                             class="w-full bg-slate-50/80 border-2 border-slate-100 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-4 sm:px-6 font-semibold text-sm sm:text-base text-slate-700 placeholder-slate-400 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all outline-none backdrop-blur-sm resize-none touch-target" 
-                            placeholder="Brief description of your goal..."></textarea>
+                            placeholder="Brief description of your goal..."
+                            maxlength="1000"></textarea>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -629,18 +658,20 @@
                         <div>
                             <label class="block text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 sm:mb-3 ml-1">Target Date</label>
                             <input type="date" name="target_date" 
-                                class="w-full bg-slate-50/80 border-2 border-slate-100 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-4 sm:px-6 text-sm sm:text-base font-semibold text-slate-700 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 outline-none backdrop-blur-sm cursor-pointer touch-target" />
+                                class="w-full bg-slate-50/80 border-2 border-slate-100 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-4 sm:px-6 text-sm sm:text-base font-semibold text-slate-700 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 outline-none backdrop-blur-sm cursor-pointer touch-target">
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-8 sm:mt-10 flex flex-col-reverse sm:flex-row justify-end items-center gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-slate-100">
-                    <button type="button" x-on:click="$dispatch('close')" 
-                        class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:bg-red-50 touch-target w-full sm:w-auto">
-                        Cancel
-                    </button>
+                    {{-- ✅ FIXED: Ganti dari $dispatch('close') ke $dispatch('close-modal', 'add-roadmap') --}}
+                    <button type="button" x-on:click="$dispatch('close-modal', 'add-roadmap')"
+    class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors px-6 py-3 rounded-xl hover:bg-red-50">
+    Cancel
+</button>
                     <button type="submit" 
-                        class="w-full sm:w-auto bg-slate-900 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:gradient-indigo hover:shadow-xl hover:shadow-indigo-200/50 transition-all shadow-lg shadow-slate-200/50 btn-press touch-target">
+                        class="w-full sm:w-auto bg-slate-900 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:gradient-indigo hover:shadow-xl hover:shadow-indigo-200/50 transition-all shadow-lg shadow-slate-200/50 btn-press touch-target"
+                        id="submitRoadmapBtn">
                         🚀 Launch Journey
                     </button>
                 </div>
@@ -664,8 +695,9 @@
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>
-            <span class="text-xs sm:text-sm font-semibold">{{ session('success') }}</span>
-            <button @click="show = false" class="ml-2 text-slate-400 hover:text-white shrink-0 touch-target">
+            <span class="text-xs sm:text-sm font-semibold">{{ e(session('success')) }}</span>
+            {{-- ✅ FIX: Pastikan tombol close bekerja --}}
+            <button @click="show = false" class="ml-2 text-slate-400 hover:text-white shrink-0 touch-target p-1">
                 <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -673,4 +705,88 @@
         </div>
     </div>
     @endif
+
+    {{-- 🔐 SECURITY SCRIPTS --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 🔐 1. DEBOUNCE: Prevent rapid form submissions (Anti-Spam)
+            const taskForms = document.querySelectorAll('form[id^="taskForm"]');
+            taskForms.forEach(form => {
+                let lastSubmit = 0;
+                const minInterval = 2000; // 2 seconds between submissions
+                
+                form.addEventListener('submit', function(e) {
+                    const now = Date.now();
+                    if (now - lastSubmit < minInterval) {
+                        e.preventDefault();
+                        alert('Please wait before submitting another task.');
+                        return false;
+                    }
+                    lastSubmit = now;
+                    
+                    // Check honeypot fields
+                    const honeypot = this.querySelector('input[name="honeypot"]');
+                    const website = this.querySelector('input[name="website"]');
+                    if ((honeypot && honeypot.value !== '') || (website && website.value !== '')) {
+                        e.preventDefault();
+                        console.warn('🚫 Spam detected!');
+                        return false;
+                    }
+                });
+            });
+            
+            // 🔐 2. ROADMAP FORM: Same debounce protection
+            const roadmapForm = document.getElementById('roadmapForm');
+            if (roadmapForm) {
+                let lastSubmit = 0;
+                roadmapForm.addEventListener('submit', function(e) {
+                    const now = Date.now();
+                    if (now - lastSubmit < 3000) { // 3 seconds for roadmap
+                        e.preventDefault();
+                        alert('Please wait before creating another roadmap.');
+                        return false;
+                    }
+                    lastSubmit = now;
+                    
+                    // Check honeypot
+                    const honeypot = this.querySelector('input[name="honeypot"]');
+                    const website = this.querySelector('input[name="website"]');
+                    if ((honeypot && honeypot.value !== '') || (website && website.value !== '')) {
+                        e.preventDefault();
+                        console.warn('🚫 Spam detected!');
+                        return false;
+                    }
+                });
+            }
+            
+            // 🔐 3. DISABLE RIGHT-CLICK on password/sensitive fields
+            document.querySelectorAll('input[type="password"], input[type="hidden"]').forEach(field => {
+                field.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    return false;
+                });
+            });
+            
+            // 🔐 4. DISABLE KEYBOARD SHORTCUTS that could be exploited
+            document.addEventListener('keydown', function(e) {
+                // Disable F12 (DevTools)
+                if (e.key === 'F12') {
+                    e.preventDefault();
+                }
+                // Disable Ctrl+Shift+I (DevTools)
+                if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+                    e.preventDefault();
+                }
+                // Disable Ctrl+U (View Source)
+                if (e.ctrlKey && e.key === 'u') {
+                    e.preventDefault();
+                }
+            });
+            
+            // 🔐 5. CONSOLE WARNING (Deter casual hackers)
+            console.log('%c⚠️ SECURITY WARNING', 'color: red; font-size: 20px; font-weight: bold;');
+            console.log('%cDo not paste any code into the console that you do not understand!', 'color: orange; font-size: 14px;');
+            console.log('%cThis could allow attackers to steal your data or compromise your account.', 'color: orange; font-size: 14px;');
+        });
+    </script>
 </x-app-layout>

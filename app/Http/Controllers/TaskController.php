@@ -76,44 +76,54 @@ class TaskController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'category_id' => 'required',
-            'deadline' => 'required|date',
-            'link_attachment' => 'nullable|url',
-        ]);
+{
+    // Honeypot check
+    if (!empty($request->input('honeypot')) || !empty($request->input('website'))) {
+        Log::warning('Spam attempt', ['ip' => $request->ip()]);
+        return back()->with('error', 'Request rejected.');
+    }
 
-        $user = Auth::user();
-        $priority = ($user->priority_mode === 'manual') 
-                    ? ($request->priority ?? 'medium') 
-                    : $this->calculatePriority($request->deadline);
+    // Timestamp validation
+    $timestamp = $request->input('_ts');
+    if ($timestamp && now()->diffInSeconds(\Carbon\Carbon::parse($timestamp)) > 300) {
+        return back()->with('error', 'Session expired. Please refresh.');
+    }
 
-        $task = Task::create([
-            'user_id' => $user->id,
-            'category_id' => $request->category_id,
-            'title' => $request->title,
-            'description' => $request->description,
-            'link_attachment' => $request->link_attachment,
-            'priority' => $priority,
-            'priority_color' => $request->priority_color,
-            'status' => 'pending',
-            'deadline' => $request->deadline,
-        ]);
+    $validated = $request->validate([
+        'title' => 'required|string|min:3|max:255|regex:/^[a-zA-Z0-9\s\.\,\!\?\-\_\(\)]+$/',
+        'description' => 'nullable|string|max:1000',
+        'link_attachment' => 'nullable|url',
+        'category_id' => 'required|exists:categories,id',
+        'deadline' => 'required|date',
+        'priority' => 'nullable|in:low,medium,high',
+        'subtasks' => 'nullable|array',
+        'subtasks.*' => 'nullable|string|max:255',
+    ]);
 
-        if ($request->has('subtasks')) {
-            foreach ($request->subtasks as $subTitle) {
-                if (!empty(trim($subTitle))) {
-                    $task->subtasks()->create([
-                        'title' => $subTitle, 
-                        'is_completed' => false
-                    ]);
-                }
+    // Sanitize
+    $validated['title'] = strip_tags(trim($validated['title']));
+    $validated['description'] = $validated['description'] ? strip_tags(trim($validated['description'])) : null;
+
+    // Auto-assign user_id
+    $validated['user_id'] = auth()->id();
+
+    // Create task
+    $task = auth()->user()->tasks()->create($validated);
+
+    // Handle subtasks
+    if (!empty($validated['subtasks'])) {
+        foreach ($validated['subtasks'] as $subtaskTitle) {
+            if (!empty($subtaskTitle)) {
+                $task->subtasks()->create([
+                    'title' => strip_tags(trim($subtaskTitle)),
+                    'is_completed' => false,
+                ]);
             }
         }
-
-        return redirect()->route('tasks.index')->with('success', 'Task created successfully!');
     }
+
+    return redirect()->route('tasks.index')->with('success', 'Task created!');
+}
 
     public function edit(Task $task)
     {
