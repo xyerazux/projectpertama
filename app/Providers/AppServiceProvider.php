@@ -6,7 +6,10 @@ use App\Models\Category;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\URL; // PENTING: Wajib di-import agar tidak error
+use Illuminate\Support\Facades\URL; 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +26,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+
+
+        // custom rate limiter untuk tasks - limit per user diubah ke 10 agar menghindari burst click yang berlebihan
+RateLimiter::for('tasks', function (Request $request) {
+    return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+});
+
+// custom rate limiter untuk roadmap - limit per user
+RateLimiter::for('roadmap', function (Request $request) {
+    return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+});
+
         Schema::defaultStringLength(191);
 
         if (config('app.env') === 'production' || config('app.env') === 'staging') {
