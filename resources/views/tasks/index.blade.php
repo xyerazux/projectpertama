@@ -70,7 +70,33 @@
     <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         <div id="react-app"></div>
     </div>
+    {{-- Pagination Links - Simple Style --}}
+@if($tasks->hasPages())
+<div class="mt-6 flex items-center justify-center gap-2">
+    {{-- Previous Page --}}
+    @if($tasks->onFirstPage())
+        <span class="px-4 py-2 bg-gray-100 text-gray-400 rounded-xl text-xs font-bold cursor-not-allowed">← Prev</span>
+    @else
+        <a href="{{ $tasks->previousPageUrl() }}" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all">← Prev</a>
+    @endif
 
+    {{-- Page Numbers --}}
+    @foreach($tasks->getUrlRange(1, $tasks->lastPage()) as $page => $url)
+        @if($page == $tasks->currentPage())
+            <span class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold">{{ $page }}</span>
+        @else
+            <a href="{{ $url }}" class="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-200 transition-all">{{ $page }}</a>
+        @endif
+    @endforeach
+
+    {{-- Next Page --}}
+    @if($tasks->hasMorePages())
+        <a href="{{ $tasks->nextPageUrl() }}" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all">Next →</a>
+    @else
+        <span class="px-4 py-2 bg-gray-100 text-gray-400 rounded-xl text-xs font-bold cursor-not-allowed">Next →</span>
+    @endif
+</div>
+@endif
     <script>
         @php
             $dataTasks = $tasks->map(function($task) {

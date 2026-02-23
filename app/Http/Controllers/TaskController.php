@@ -7,14 +7,19 @@ use App\Models\Category;
 use App\Models\Subtask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class TaskController extends Controller
 {
+    
+    // list tasks
     public function index(Request $request)
     {
         $user = Auth::user();
         
+        // auto update priority kalau mode auto
         if ($user->priority_mode === 'auto') {
             $allTasks = Task::where('user_id', $user->id)
                             ->where('status', 'pending')
@@ -28,8 +33,11 @@ class TaskController extends Controller
             }
         }
 
-        $query = Task::with(['category', 'subtasks'])->where('user_id', $user->id)->where('status', 'pending');
+        $query = Task::with(['category', 'subtasks'])
+                     ->where('user_id', $user->id)
+                     ->where('status', 'pending');
 
+        // filter
         if ($request->filled('priority')) {
             $query->where('priority', $request->priority);
         }
@@ -39,33 +47,40 @@ class TaskController extends Controller
         }
 
         $tasks = $query->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
-                       ->latest()
-                       ->get();
+               ->latest()
+               ->paginate(10)
+               ->withQueryString();
 
         $categories = Category::where('user_id', $user->id)->get();
+        
         return view('tasks.index', compact('tasks', 'categories'));
     }
 
-    // LIST TASK SELESAI
+    // task selesai
     public function completed()
     {
         $tasks = Task::where('user_id', Auth::id())
                      ->where('status', 'completed')
                      ->latest()
                      ->get();
+                     
         return view('tasks.completed', compact('tasks'));
     }
 
+    // form create
     public function create()
     {
         $categories = Category::where('user_id', Auth::id())->get();
         $is_manual = Auth::user()->priority_mode === 'manual';
+        
         return view('tasks.create', compact('categories', 'is_manual'));
     }
 
+    // hitung priority auto
     private function calculatePriority($deadline)
     {
         if (!$deadline) return 'low';
+        
         $today = Carbon::today();
         $target = Carbon::parse($deadline);
         $diff = $today->diffInDays($target, false);
@@ -75,157 +90,226 @@ class TaskController extends Controller
         return 'low';
     }
 
+    // simpan task baru
     public function store(Request $request)
-{
-    // Honeypot check
-    if (!empty($request->input('honeypot')) || !empty($request->input('website'))) {
-        Log::warning('Spam attempt', ['ip' => $request->ip()]);
-        return back()->with('error', 'Request rejected.');
-    }
+    {
+        // ✅ Extra safety: Manual rate limit check (fallback jika middleware gagal)
+    $userId = auth()->id();
+    $cacheKey = "task_store_limit_{$userId}";
+    $attempts = Cache::get($cacheKey, 0);
+    
+    if ($attempts >= 20) {
+    return back()->with('error', '⚠️ Too many requests. Please wait a minute before creating another task.');
+}
+    
+    Cache::put($cacheKey, $attempts + 1, now()->addMinute());
 
-    // Timestamp validation
-    $timestamp = $request->input('_ts');
-    if ($timestamp && now()->diffInSeconds(\Carbon\Carbon::parse($timestamp)) > 300) {
-        return back()->with('error', 'Session expired. Please refresh.');
-    }
+        // validasi input - ini yang penting, server-side
+        $validated = $request->validate([
+            'title' => 'required|string|min:2|max:255',
+            'description' => 'nullable|string|max:1000',
+            'link_attachment' => 'nullable|url',
+            'category_id' => 'required|exists:categories,id',
+            'deadline' => 'required|date',
+            'priority' => 'nullable|in:low,medium,high',
+            'subtasks' => 'nullable|array',
+            'subtasks.*' => 'nullable|string|max:255',
+        ], [
+            'title.required' => 'Task title wajib diisi',
+            'title.min' => 'Title minimal 2 karakter',
+            'category_id.exists' => 'Kategori tidak valid',
+            'deadline.date' => 'Format tanggal tidak valid',
+        ]);
 
-    $validated = $request->validate([
-        'title' => 'required|string|min:3|max:255|regex:/^[a-zA-Z0-9\s\.\,\!\?\-\_\(\)]+$/',
-        'description' => 'nullable|string|max:1000',
-        'link_attachment' => 'nullable|url',
-        'category_id' => 'required|exists:categories,id',
-        'deadline' => 'required|date',
-        'priority' => 'nullable|in:low,medium,high',
-        'subtasks' => 'nullable|array',
-        'subtasks.*' => 'nullable|string|max:255',
-    ]);
+        // sanitasi input - cegah XSS
+        $validated['title'] = strip_tags(trim($validated['title']));
+        $validated['description'] = $validated['description'] 
+            ? strip_tags(trim($validated['description'])) 
+            : null;
+        $validated['link_attachment'] = $validated['link_attachment'] 
+            ? filter_var(trim($validated['link_attachment']), FILTER_VALIDATE_URL) 
+            : null;
 
-    // Sanitize
-    $validated['title'] = strip_tags(trim($validated['title']));
-    $validated['description'] = $validated['description'] ? strip_tags(trim($validated['description'])) : null;
+        // auto assign user
+        $validated['user_id'] = auth()->id();
+        $validated['status'] = 'pending';
 
-    // Auto-assign user_id
-    $validated['user_id'] = auth()->id();
+        try {
+            // simpan task
+            $task = auth()->user()->tasks()->create($validated);
 
-    // Create task
-    $task = auth()->user()->tasks()->create($validated);
-
-    // Handle subtasks
-    if (!empty($validated['subtasks'])) {
-        foreach ($validated['subtasks'] as $subtaskTitle) {
-            if (!empty($subtaskTitle)) {
-                $task->subtasks()->create([
-                    'title' => strip_tags(trim($subtaskTitle)),
-                    'is_completed' => false,
-                ]);
+            // simpan subtasks kalau ada
+            if (!empty($validated['subtasks'])) {
+                foreach ($validated['subtasks'] as $subtaskTitle) {
+                    if (!empty($subtaskTitle)) {
+                        $task->subtasks()->create([
+                            'title' => strip_tags(trim($subtaskTitle)),
+                            'is_completed' => false,
+                        ]);
+                    }
+                }
             }
+
+            return redirect()->route('tasks.index')->with('success', '✅ Task created!');
+            
+        } catch (\Exception $e) {
+            Log::error('Task creation failed', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+            
+            return back()->with('error', '❌ Gagal membuat task. Coba lagi.');
         }
     }
 
-    return redirect()->route('tasks.index')->with('success', 'Task created!');
-}
-
+    // form edit
     public function edit(Task $task)
     {
         $this->authorizeOwner($task);
+        
         $categories = Category::where('user_id', Auth::id())->get();
         $is_manual = Auth::user()->priority_mode === 'manual';
+        
         return view('tasks.edit', compact('task', 'categories', 'is_manual'));
     }
 
+    // update task
     public function update(Request $request, Task $task)
     {
         $this->authorizeOwner($task);
         $user = Auth::user();
 
-        $request->validate([
-            'title' => 'required|string|max:255',
+        // validasi
+        $validated = $request->validate([
+            'title' => 'required|string|min:2|max:255',
+            'description' => 'nullable|string|max:1000',
             'category_id' => 'required|exists:categories,id',
             'deadline' => 'required|date',
             'status' => 'required|in:pending,completed',
             'link_attachment' => 'nullable|url',
+            'priority' => 'nullable|in:low,medium,high',
+            'existing_subtasks' => 'nullable|array',
+            'existing_subtasks.*' => 'nullable|string|max:255',
+            'subtasks_status' => 'nullable|array',
+            'subtasks' => 'nullable|array',
+            'subtasks.*' => 'nullable|string|max:255',
         ]);
 
+        // sanitasi
+        $validated['title'] = strip_tags(trim($validated['title']));
+        $validated['description'] = $validated['description'] 
+            ? strip_tags(trim($validated['description'])) 
+            : null;
+
+        // priority: manual atau auto
         $priority = ($user->priority_mode === 'manual') 
-                    ? ($request->priority ?? $task->priority) 
-                    : $this->calculatePriority($request->deadline);
+            ? ($validated['priority'] ?? $task->priority) 
+            : $this->calculatePriority($validated['deadline']);
 
+        // update task
         $task->update([
-            'title' => $request->title,
-            'category_id' => $request->category_id,
-            'deadline' => $request->deadline,
-            'description' => $request->description,
-            'link_attachment' => $request->link_attachment,
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'category_id' => $validated['category_id'],
+            'deadline' => $validated['deadline'],
+            'link_attachment' => $validated['link_attachment'],
             'priority' => $priority,
-            'priority_color' => ($user->priority_mode === 'manual') ? $request->priority_color : $task->priority_color,
-            'status' => $request->status,
+            'status' => $validated['status'],
         ]);
 
-        if ($request->has('existing_subtasks')) {
-            foreach ($request->existing_subtasks as $subId => $title) {
-                $subtask = Subtask::where('id', $subId)->where('task_id', $task->id)->first();
+        // update existing subtasks
+        if (!empty($validated['existing_subtasks'])) {
+            foreach ($validated['existing_subtasks'] as $subId => $title) {
+                $subtask = $task->subtasks()->find($subId);
                 if ($subtask) {
+                    $isCompleted = !empty($validated['subtasks_status'][$subId]);
                     $subtask->update([
-                        'title' => $title,
-                        'is_completed' => isset($request->subtasks_status[$subId]) && $request->subtasks_status[$subId] == '1'
+                        'title' => strip_tags(trim($title)),
+                        'is_completed' => $isCompleted,
                     ]);
                 }
             }
         }
 
-        if ($request->has('subtasks')) {
-            foreach ($request->subtasks as $newSubTitle) {
+        // tambah subtasks baru
+        if (!empty($validated['subtasks'])) {
+            foreach ($validated['subtasks'] as $newSubTitle) {
                 if (!empty(trim($newSubTitle))) {
                     $task->subtasks()->create([
-                        'title' => $newSubTitle,
-                        'is_completed' => false
+                        'title' => strip_tags(trim($newSubTitle)),
+                        'is_completed' => false,
                     ]);
                 }
             }
         }
 
-        return redirect()->route('tasks.index')->with('success', 'Task updated successfully!');
+        return redirect()->route('tasks.index')->with('success', '✏️ Task updated!');
     }
 
-    // PROSES MARK AS DONE
+    // mark as done
     public function complete(Task $task)
     {
         $this->authorizeOwner($task);
-        $task->update(['status' => 'completed']);
-        return redirect()->route('tasks.index')->with('success', 'Task marked as done!');
+        
+        $task->update([
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+        
+        return redirect()->route('tasks.index')->with('success', '✅ Task marked as done!');
     }
 
+    // hapus task (soft delete)
     public function destroy(Task $task)
     {
         $this->authorizeOwner($task);
+        
         $task->delete();
-        return redirect()->route('tasks.index')->with('success', 'Task moved to trash!');
+        
+        return redirect()->route('tasks.index')->with('success', '🗑️ Task moved to trash!');
     }
 
-    public function trash()
-{
-    // Gunakan paginate(10) bukan get()
-    $tasks = Task::onlyTrashed()->where('user_id', auth()->id())->paginate(10);
-    
-    return view('tasks.trash', compact('tasks'));
-}
+    // list task di trash
+    public function trash(Request $request)
+    {
+        $tasks = Task::onlyTrashed()
+                     ->where('user_id', auth()->id())
+                     ->paginate(10);
+        
+        return view('tasks.trash', compact('tasks'));
+    }
 
+    // restore task dari trash
     public function restore($id)
     {
-        $task = Task::onlyTrashed()->where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+        $task = Task::onlyTrashed()
+                    ->where('id', $id)
+                    ->where('user_id', Auth::id())
+                    ->firstOrFail();
+                    
         $task->restore();
-        return redirect()->route('tasks.trash')->with('success', 'Task restored successfully!');
+        
+        return redirect()->route('tasks.trash')->with('success', 'Task restored!');
     }
 
+    // hapus permanent dari trash
     public function forceDelete($id)
     {
-        $task = Task::onlyTrashed()->where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+        $task = Task::onlyTrashed()
+                    ->where('id', $id)
+                    ->where('user_id', Auth::id())
+                    ->firstOrFail();
+                    
         $task->forceDelete();
+        
         return redirect()->route('tasks.trash')->with('success', 'Task permanently deleted!');
     }
 
+    // cek ownership - jangan sampai user lain bisa akses
     private function authorizeOwner(Task $task)
     {
-        if ($task->user_id !== Auth::id()) abort(403);
+        if ($task->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
     }
 }

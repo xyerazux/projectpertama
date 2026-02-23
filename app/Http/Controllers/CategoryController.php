@@ -72,7 +72,6 @@ class CategoryController extends Controller
         ->with('success', 'Kategori berhasil diupdate');
 }
 
-
     public function destroy(Category $category)
     {
         if ($category->user_id !== auth()->id()) {

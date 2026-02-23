@@ -13,8 +13,8 @@ return new class extends Migration
         $table->foreignId('user_id')->constrained()->onDelete('cascade');
         $table->foreignId('category_id')->constrained()->onDelete('cascade');
         $table->string('title');
-        $table->text('description')->nullable(); // Sudah ada di sini
-        $table->string('link_attachment')->nullable(); // Tambahkan baris ini di sini
+        $table->text('description')->nullable();
+        $table->string('link_attachment')->nullable();
         $table->string('priority')->default('medium'); 
         $table->string('status')->default('pending'); 
         $table->dateTime('deadline')->nullable();
