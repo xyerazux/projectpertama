@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Cache;
 
 class TaskController extends Controller
 {
-    
     // list tasks
     public function index(Request $request)
     {
@@ -93,48 +92,49 @@ class TaskController extends Controller
     // simpan task baru
     public function store(Request $request)
     {
-        // ✅ Extra safety: Manual rate limit check (fallback jika middleware gagal)
-    $userId = auth()->id();
-    $cacheKey = "task_store_limit_{$userId}";
-    $attempts = Cache::get($cacheKey, 0);
-    
-    if ($attempts >= 20) {
-    return back()->with('error', '⚠️ Too many requests. Please wait a minute before creating another task.');
-}
-    
-    Cache::put($cacheKey, $attempts + 1, now()->addMinute());
-
-        // validasi input - ini yang penting, server-side
-        $validated = $request->validate([
-            'title' => 'required|string|min:2|max:255',
-            'description' => 'nullable|string|max:1000',
-            'link_attachment' => 'nullable|url',
-            'category_id' => 'required|exists:categories,id',
-            'deadline' => 'required|date',
-            'priority' => 'nullable|in:low,medium,high',
-            'subtasks' => 'nullable|array',
-            'subtasks.*' => 'nullable|string|max:255',
-        ], [
-            'title.required' => 'Task title wajib diisi',
-            'title.min' => 'Title minimal 2 karakter',
-            'category_id.exists' => 'Kategori tidak valid',
-            'deadline.date' => 'Format tanggal tidak valid',
-        ]);
-
-        // sanitasi input - cegah XSS
-        $validated['title'] = strip_tags(trim($validated['title']));
-        $validated['description'] = $validated['description'] 
-            ? strip_tags(trim($validated['description'])) 
-            : null;
-        $validated['link_attachment'] = $validated['link_attachment'] 
-            ? filter_var(trim($validated['link_attachment']), FILTER_VALIDATE_URL) 
-            : null;
-
-        // auto assign user
-        $validated['user_id'] = auth()->id();
-        $validated['status'] = 'pending';
+        // PENCEGAHAN SPAM BACKEND VIA SESSION (Lebih Cepat dari Cache Lock untuk form submit)
+        if (session()->has('last_task_created_time')) {
+            $lastCreated = session('last_task_created_time');
+            // Jika request masuk kurang dari 3 detik dari request sebelumnya, tolak!
+            if (now()->diffInSeconds($lastCreated) < 3) {
+                return back()->with('error', '⚠️ Sedang memproses, jangan tekan tombol berkali-kali.');
+            }
+        }
+        
+        // Catat waktu klik saat ini ke session
+        session(['last_task_created_time' => now()]);
 
         try {
+            // validasi input - server-side
+            $validated = $request->validate([
+                'title' => 'required|string|min:2|max:255',
+                'description' => 'nullable|string|max:1000',
+                'link_attachment' => 'nullable|url',
+                'category_id' => 'required|exists:categories,id',
+                'deadline' => 'required|date',
+                'priority' => 'nullable|in:low,medium,high',
+                'subtasks' => 'nullable|array',
+                'subtasks.*' => 'nullable|string|max:255',
+            ], [
+                'title.required' => 'Task title wajib diisi',
+                'title.min' => 'Title minimal 2 karakter',
+                'category_id.exists' => 'Kategori tidak valid',
+                'deadline.date' => 'Format tanggal tidak valid',
+            ]);
+
+            // sanitasi input
+            $validated['title'] = strip_tags(trim($validated['title']));
+            $validated['description'] = $validated['description'] 
+                ? strip_tags(trim($validated['description'])) 
+                : null;
+            $validated['link_attachment'] = $validated['link_attachment'] 
+                ? filter_var(trim($validated['link_attachment']), FILTER_VALIDATE_URL) 
+                : null;
+
+            // auto assign user + status default
+            $validated['user_id'] = auth()->id();
+            $validated['status'] = 'pending';
+
             // simpan task
             $task = auth()->user()->tasks()->create($validated);
 
@@ -150,15 +150,34 @@ class TaskController extends Controller
                 }
             }
 
-            return redirect()->route('tasks.index')->with('success', '✅ Task created!');
+            return redirect()->route('tasks.index')->with('success', 'Task created!');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Jika validasi gagal, hapus session agar user bisa langsung submit ulang tanpa nunggu 3 detik
+            session()->forget('last_task_created_time');
+            return back()->withErrors($e->errors())->withInput();
             
-        } catch (\Exception $e) {
-            Log::error('Task creation failed', [
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('Task DB error', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
             ]);
+            return back()->with('error', ' Database error. Coba lagi.');
             
-            return back()->with('error', '❌ Gagal membuat task. Coba lagi.');
+        } catch (\Illuminate\Database\Eloquent\MassAssignmentException $e) {
+            \Log::error('Task MassAssignment error', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', ' Configuration error. Hubungi admin.');
+            
+        } catch (\Exception $e) {
+            \Log::error('Task creation failed', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return back()->with('error', ' Gagal membuat task. Coba lagi.');
         }
     }
 

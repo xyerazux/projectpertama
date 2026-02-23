@@ -18,7 +18,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('tasks.store') }}" method="POST" class="space-y-6">
+            <form id="taskForm" action="{{ route('tasks.store') }}" method="POST" class="space-y-6">
                 @csrf
                 <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm space-y-6">
                     {{-- Task Name --}}
@@ -110,7 +110,7 @@
                     <a href="{{ route('tasks.index') }}" class="text-[11px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-700 transition-all">
                         ← Cancel
                     </a>
-                    <button type="submit" class="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-600 shadow-xl shadow-gray-200 hover:shadow-indigo-100 transition-all active:scale-95">
+                    <button id="submitBtn" type="submit" class="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-600 shadow-xl shadow-gray-200 hover:shadow-indigo-100 transition-all active:scale-95">
                         Save Task
                     </button>
                 </div>
@@ -130,6 +130,26 @@
             `;
             container.appendChild(div);
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('taskForm');
+        const btn = document.getElementById('submitBtn');
+
+        if (form && btn) {
+            form.addEventListener('submit', function (e) {
+                // Mencegah double click
+                if (btn.disabled) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // Matikan tombol & ubah teksnya
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed'); // Tambahan efek visual tailwind
+                btn.innerHTML = 'Saving... ⏳'; // Sesuaikan dengan teks tombolmu
+            });
+        }
+    });
     </script>
 
     <style>

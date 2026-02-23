@@ -11,9 +11,9 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Http\Request;
 
-// custom rate limiter untuk tasks - limit per user
+// custom rate limiter untuk tasks - limit per user diubah ke 10 agar menghindari burst click yang berlebihan
 RateLimiter::for('tasks', function (Request $request) {
-    return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+    return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
 });
 
 // custom rate limiter untuk roadmap - limit per user

@@ -10,30 +10,34 @@ class Task extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = [
+     protected $fillable = [
         'user_id',
-        'category_id',
         'title',
         'description',
-        'link_attachment',
+        'category_id',
+        'deadline',
         'priority',
+        'priority_color',
         'status',
-        'deadline'
+        'link_attachment',
+        'completed_at',
     ];
 
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
+     protected $casts = [
+        'deadline' => 'date',
+        'completed_at' => 'datetime',
+    ];
 
-    public function user()
-    {
+    // relationships...
+    public function user() {
         return $this->belongsTo(User::class);
     }
 
-    public function subtasks()
-{
-    return $this->hasMany(Subtask::class);
-}
+    public function category() {
+        return $this->belongsTo(Category::class);
+    }
 
+    public function subtasks() {
+        return $this->hasMany(Subtask::class);
+    }
 }
