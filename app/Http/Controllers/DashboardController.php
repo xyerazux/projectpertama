@@ -32,17 +32,21 @@ class DashboardController extends Controller
 
         // Hitung task per kategori (hanya yang pending)
         $taskPerCategory = Category::where('user_id', $userId)
-            ->withCount(['tasks' => function($query) {
+            ->withCount(['tasks' => function ($query) {
                 $query->where('status', 'pending');
             }])->get();
 
+        // Cek apakah user sudah punya kategori
+        $hasCategories = Category::where('user_id', $userId)->exists();
+
         return view('dashboard', compact(
-            'totalTasks', 
-            'doneTasks', 
-            'pendingTasks', 
-            'recentTasks', 
-            'progress', 
-            'taskPerCategory'
+            'totalTasks',
+            'doneTasks',
+            'pendingTasks',
+            'recentTasks',
+            'progress',
+            'taskPerCategory',
+            'hasCategories'
         ));
     }
 }

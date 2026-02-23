@@ -175,5 +175,7 @@
 
         document.addEventListener('DOMContentLoaded', initSidebar);
     </script>
+
+    @stack('modals')
 </body>
 </html>

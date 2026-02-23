@@ -19,7 +19,7 @@
     {{-- Main Content --}}
     <div class="py-10 bg-gray-50/50">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
-            
+
             {{-- Stat Cards --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {{-- Total Tasks --}}
@@ -140,5 +140,61 @@
                 </div>
             </div>
         </div>
+
+    @if (!$hasCategories)
+    @push('modals')
+    <div id="category-popup-overlay" class="fixed inset-0 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm transition-opacity duration-300" style="z-index: 99999; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;">
+        <div id="category-popup" class="relative bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-md mx-4 overflow-hidden transform transition-all duration-300 scale-100">
+            {{-- Header accent --}}
+            <div class="h-1.5 bg-gradient-to-r from-indigo-500 to-blue-500"></div>
+
+            {{-- Close button --}}
+            <button onclick="closeCategoryPopup()" class="absolute top-4 right-4 p-1.5 text-gray-300 hover:text-gray-500 transition rounded-lg hover:bg-gray-50">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            {{-- Content --}}
+            <div class="px-8 pt-8 pb-6 text-center">
+                {{-- Icon --}}
+                <div class="mx-auto w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-5">
+                    <svg class="h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                </div>
+
+                <h3 class="text-xl font-extrabold text-gray-800 tracking-tight">Welcome! One Quick Step</h3>
+                <p class="mt-3 text-sm text-gray-500 leading-relaxed">
+                    Before creating your first task, please set up at least one <strong class="text-gray-700">category</strong> to organize your work effectively.
+                </p>
+            </div>
+
+            {{-- Actions --}}
+            <div class="px-8 pb-8 space-y-3">
+                <a href="{{ route('categories.index') }}" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition shadow-lg shadow-indigo-100 active:scale-95">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create Category Now
+                </a>
+                <button onclick="closeCategoryPopup()" class="w-full px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-gray-600 transition rounded-xl hover:bg-gray-50">
+                    Maybe Later
+                </button>
+            </div>
+        </div>
     </div>
+
+    <script>
+        function closeCategoryPopup() {
+            const overlay = document.getElementById('category-popup-overlay');
+            const popup = document.getElementById('category-popup');
+            overlay.style.opacity = '0';
+            popup.style.transform = 'scale(0.95)';
+            setTimeout(() => overlay.style.display = 'none', 200);
+        }
+    </script>
+    @endpush
+    @endif
+
 </x-app-layout>

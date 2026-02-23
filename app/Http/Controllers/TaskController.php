@@ -17,12 +17,12 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
+
         // auto update priority kalau mode auto
         if ($user->priority_mode === 'auto') {
             $allTasks = Task::where('user_id', $user->id)
-                            ->where('status', 'pending')
-                            ->get();
+                ->where('status', 'pending')
+                ->get();
 
             foreach ($allTasks as $t) {
                 $newPriority = $this->calculatePriority($t->deadline);
@@ -33,8 +33,8 @@ class TaskController extends Controller
         }
 
         $query = Task::with(['category', 'subtasks'])
-                     ->where('user_id', $user->id)
-                     ->where('status', 'pending');
+            ->where('user_id', $user->id)
+            ->where('status', 'pending');
 
         // filter
         if ($request->filled('priority')) {
@@ -46,12 +46,12 @@ class TaskController extends Controller
         }
 
         $tasks = $query->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
-               ->latest()
-               ->paginate(10)
-               ->withQueryString();
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
 
         $categories = Category::where('user_id', $user->id)->get();
-        
+
         return view('tasks.index', compact('tasks', 'categories'));
     }
 
@@ -59,10 +59,10 @@ class TaskController extends Controller
     public function completed()
     {
         $tasks = Task::where('user_id', Auth::id())
-                     ->where('status', 'completed')
-                     ->latest()
-                     ->get();
-                     
+            ->where('status', 'completed')
+            ->latest()
+            ->get();
+
         return view('tasks.completed', compact('tasks'));
     }
 
@@ -71,21 +71,24 @@ class TaskController extends Controller
     {
         $categories = Category::where('user_id', Auth::id())->get();
         $is_manual = Auth::user()->priority_mode === 'manual';
-        
+
         return view('tasks.create', compact('categories', 'is_manual'));
     }
 
     // hitung priority auto
     private function calculatePriority($deadline)
     {
-        if (!$deadline) return 'low';
-        
+        if (!$deadline)
+            return 'low';
+
         $today = Carbon::today();
         $target = Carbon::parse($deadline);
         $diff = $today->diffInDays($target, false);
 
-        if ($diff <= 2) return 'high';
-        if ($diff <= 5) return 'medium';
+        if ($diff <= 2)
+            return 'high';
+        if ($diff <= 5)
+            return 'medium';
         return 'low';
     }
 
@@ -94,12 +97,12 @@ class TaskController extends Controller
     {
         // 1. PENCEGAHAN SPAM MENGGUNAKAN INTEGER TIMESTAMP (Aman dari Error 500 Object Serialization)
         $lastCreated = session('last_task_time', 0);
-        
+
         // Jika selisih waktu dari request terakhir kurang dari 3 detik, tolak!
         if (time() - $lastCreated < 3) {
             return back()->with('error', '⚠️ Sedang memproses, jangan tekan tombol berkali-kali.');
         }
-        
+
         // Langsung set session lock saat request masuk
         session(['last_task_time' => time()]);
 
@@ -131,7 +134,7 @@ class TaskController extends Controller
         try {
             // 3. SANITASI INPUT YANG AMAN (Mencegah "Undefined Array Key" Error 500)
             $validated['title'] = strip_tags(trim($validated['title']));
-            
+
             if (!empty($validated['description'])) {
                 $validated['description'] = strip_tags(trim($validated['description']));
             } else {
@@ -168,12 +171,12 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             // Jika terjadi error sistem/database, catat errornya dan buka kembali kuncinya
             session()->forget('last_task_time');
-            
+
             \Log::error('Task creation failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
             ]);
-            
+
             return back()->with('error', 'Gagal menyimpan ke database. Hubungi admin atau coba lagi.');
         }
     }
@@ -182,10 +185,10 @@ class TaskController extends Controller
     public function edit(Task $task)
     {
         $this->authorizeOwner($task);
-        
+
         $categories = Category::where('user_id', Auth::id())->get();
         $is_manual = Auth::user()->priority_mode === 'manual';
-        
+
         return view('tasks.edit', compact('task', 'categories', 'is_manual'));
     }
 
@@ -213,13 +216,13 @@ class TaskController extends Controller
 
         // sanitasi
         $validated['title'] = strip_tags(trim($validated['title']));
-        $validated['description'] = $validated['description'] 
-            ? strip_tags(trim($validated['description'])) 
+        $validated['description'] = $validated['description']
+            ? strip_tags(trim($validated['description']))
             : null;
 
         // priority: manual atau auto
-        $priority = ($user->priority_mode === 'manual') 
-            ? ($validated['priority'] ?? $task->priority) 
+        $priority = ($user->priority_mode === 'manual')
+            ? ($validated['priority'] ?? $task->priority)
             : $this->calculatePriority($validated['deadline']);
 
         // update task
@@ -266,12 +269,12 @@ class TaskController extends Controller
     public function complete(Task $task)
     {
         $this->authorizeOwner($task);
-        
+
         $task->update([
             'status' => 'completed',
             'completed_at' => now(),
         ]);
-        
+
         return redirect()->route('tasks.index')->with('success', '✅ Task marked as done!');
     }
 
@@ -279,9 +282,9 @@ class TaskController extends Controller
     public function destroy(Task $task)
     {
         $this->authorizeOwner($task);
-        
+
         $task->delete();
-        
+
         return redirect()->route('tasks.index')->with('success', '🗑️ Task moved to trash!');
     }
 
@@ -289,9 +292,9 @@ class TaskController extends Controller
     public function trash(Request $request)
     {
         $tasks = Task::onlyTrashed()
-                     ->where('user_id', auth()->id())
-                     ->paginate(10);
-        
+            ->where('user_id', auth()->id())
+            ->paginate(10);
+
         return view('tasks.trash', compact('tasks'));
     }
 
@@ -299,12 +302,12 @@ class TaskController extends Controller
     public function restore($id)
     {
         $task = Task::onlyTrashed()
-                    ->where('id', $id)
-                    ->where('user_id', Auth::id())
-                    ->firstOrFail();
-                    
+            ->where('id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
         $task->restore();
-        
+
         return redirect()->route('tasks.trash')->with('success', 'Task restored!');
     }
 
@@ -312,12 +315,12 @@ class TaskController extends Controller
     public function forceDelete($id)
     {
         $task = Task::onlyTrashed()
-                    ->where('id', $id)
-                    ->where('user_id', Auth::id())
-                    ->firstOrFail();
-                    
+            ->where('id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
         $task->forceDelete();
-        
+
         return redirect()->route('tasks.trash')->with('success', 'Task permanently deleted!');
     }
 
