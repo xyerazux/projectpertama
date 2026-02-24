@@ -45,7 +45,7 @@ class TaskController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        $tasks = $query->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
+        $tasks = $query->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END")
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -100,7 +100,7 @@ class TaskController extends Controller
 
         // Jika selisih waktu dari request terakhir kurang dari 3 detik, tolak!
         if (time() - $lastCreated < 3) {
-            return back()->with('error', '⚠️ Sedang memproses, jangan tekan tombol berkali-kali.');
+            return back()->with('error', 'Sedang memproses, jangan tekan tombol berkali-kali.');
         }
 
         // Langsung set session lock saat request masuk
@@ -262,7 +262,7 @@ class TaskController extends Controller
             }
         }
 
-        return redirect()->route('tasks.index')->with('success', '✏️ Task updated!');
+        return redirect()->route('tasks.index')->with('success', 'Task updated successfully.');
     }
 
     // mark as done
@@ -275,7 +275,7 @@ class TaskController extends Controller
             'completed_at' => now(),
         ]);
 
-        return redirect()->route('tasks.index')->with('success', '✅ Task marked as done!');
+        return redirect()->route('tasks.index')->with('success', 'Task marked as done.');
     }
 
     // hapus task (soft delete)
@@ -285,7 +285,7 @@ class TaskController extends Controller
 
         $task->delete();
 
-        return redirect()->route('tasks.index')->with('success', '🗑️ Task moved to trash!');
+        return redirect()->route('tasks.index')->with('success', 'Task moved to trash.');
     }
 
     // list task di trash

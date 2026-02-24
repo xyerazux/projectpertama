@@ -276,13 +276,13 @@
                                             <h4 class="text-xs sm:text-sm font-black text-slate-600 uppercase tracking-wider">Milestones</h4>
                                             <div class="flex gap-1.5 sm:gap-2 flex-wrap">
                                                 <span class="px-1.5 sm:px-2 py-1 bg-red-50 text-red-600 text-[8px] sm:text-[9px] font-bold rounded-lg border border-red-100">
-                                                    🔴 {{ $roadmap->steps->where('priority', 'high')->where('is_completed', false)->count() }}
+                                                    {{ $roadmap->steps->where('priority', 'high')->where('is_completed', false)->count() }} High
                                                 </span>
                                                 <span class="px-1.5 sm:px-2 py-1 bg-amber-50 text-amber-600 text-[8px] sm:text-[9px] font-bold rounded-lg border border-amber-100">
-                                                    🟡 {{ $roadmap->steps->where('priority', 'medium')->where('is_completed', false)->count() }}
+                                                    {{ $roadmap->steps->where('priority', 'medium')->where('is_completed', false)->count() }} Medium
                                                 </span>
                                                 <span class="px-1.5 sm:px-2 py-1 bg-emerald-50 text-emerald-600 text-[8px] sm:text-[9px] font-bold rounded-lg border border-emerald-100">
-                                                    🟢 {{ $roadmap->steps->where('priority', 'low')->where('is_completed', false)->count() }}
+                                                    {{ $roadmap->steps->where('priority', 'low')->where('is_completed', false)->count() }} Low
                                                 </span>
                                             </div>
                                         </div>
@@ -326,12 +326,10 @@
                                                                     : ($step->priority == 'high' ? 'priority-high' : ($step->priority == 'low' ? 'priority-low' : 'priority-medium')) 
                                                                 }}">
                                                                 <span class="hidden sm:inline">{{ e($step->priority ?? 'medium') }}</span>
-                                                                <span class="sm:hidden">
-                                                                    @if($step->priority == 'high') 🔴
-                                                                    @elseif($step->priority == 'low') 🟢
-                                                                    @else 🟡
+                                                                    @if($step->priority == 'high') High
+                                                                    @elseif($step->priority == 'low') Low
+                                                                    @else Medium
                                                                     @endif
-                                                                </span>
                                                             </span>
                                                         </div>
                                                         
@@ -397,12 +395,12 @@
                                                             
                                                             <div class="grid grid-cols-2 gap-2">
                                                                 <select name="priority" class="bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target">
-                                                                    <option value="high" {{ ($step->priority ?? 'medium') == 'high' ? 'selected' : '' }}>🔴 High</option>
-                                                                    <option value="medium" {{ ($step->priority ?? 'medium') == 'medium' ? 'selected' : '' }}>🟡 Medium</option>
-                                                                    <option value="low" {{ ($step->priority ?? 'medium') == 'low' ? 'selected' : '' }}>🟢 Low</option>
+                                                                    <option value="high" {{ ($step->priority ?? 'medium') == 'high' ? 'selected' : '' }}>High</option>
+                                                                    <option value="medium" {{ ($step->priority ?? 'medium') == 'medium' ? 'selected' : '' }}>Medium</option>
+                                                                    <option value="low" {{ ($step->priority ?? 'medium') == 'low' ? 'selected' : '' }}>Low</option>
                                                                 </select>
                                                                 
-                                                                <input type="text" name="category" value="{{ e($step->category ?? '') }}" placeholder="📌 Category"
+                                                                <input type="text" name="category" value="{{ e($step->category ?? '') }}" placeholder="Category"
                                                                     class="bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target"
                                                                     maxlength="50"
                                                                     pattern="[a-zA-Z\s\-]+">
@@ -411,7 +409,7 @@
                                                             <input type="date" name="due_date" value="{{ $step->due_date ? \Carbon\Carbon::parse($step->due_date)->format('Y-m-d') : '' }}" 
                                                                 class="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target">
                                                             
-                                                            <textarea name="description" rows="2" placeholder="📝 Description..."
+                                                            <textarea name="description" rows="2" placeholder="Description..."
                                                                 class="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none resize-none touch-target"
                                                                 maxlength="1000">{{ e($step->description ?? '') }}</textarea>
                                                             
@@ -463,7 +461,7 @@
                                                 <input type="hidden" name="_token_hash" value="{{ $formToken }}">
                                                 
                                                 <div class="flex gap-2 sm:gap-3">
-                                                    <input type="text" name="title" placeholder="✨ Task title..." required
+                                                    <input type="text" name="title" placeholder="Task title..." required
                                                         class="flex-1 bg-white/80 border-2 border-slate-100 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-3 sm:px-6 text-xs sm:text-sm font-semibold focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 outline-none backdrop-blur-sm touch-target"
                                                         maxlength="255"
                                                         pattern="[a-zA-Z0-9\s\.\,\!\?\-\_\(\)]+">
@@ -485,12 +483,12 @@
                                                 {{-- Advanced Fields - Responsive --}}
                                                 <div x-show="showAdvanced" x-collapse class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 pt-3">
                                                     <select name="priority" class="bg-white/80 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target">
-                                                        <option value="medium">🟡 Priority: Medium</option>
-                                                        <option value="high">🔴 Priority: High</option>
-                                                        <option value="low">🟢 Priority: Low</option>
+                                                        <option value="medium">Priority: Medium</option>
+                                                        <option value="high">Priority: High</option>
+                                                        <option value="low">Priority: Low</option>
                                                     </select>
                                                     
-                                                    <input type="text" name="category" placeholder="📌 Category" list="categories"
+                                                    <input type="text" name="category" placeholder="Category" list="categories"
                                                         class="bg-white/80 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none touch-target"
                                                         maxlength="50"
                                                         pattern="[a-zA-Z\s\-]+">
@@ -516,7 +514,7 @@
                                                 </div>
                                                 
                                                 <div x-show="showAdvanced" x-collapse>
-                                                    <textarea name="description" placeholder="📝 Task description (optional)..." rows="2"
+                                                    <textarea name="description" placeholder="Task description (optional)..." rows="2"
                                                         class="w-full bg-white/80 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-100 outline-none resize-none touch-target"
                                                         maxlength="1000"></textarea>
                                                 </div>
@@ -526,7 +524,7 @@
 
                                     {{-- Delete Roadmap Button - Responsive with Extra Confirmation --}}
                                     <div class="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-slate-100/60 flex justify-end">
-                                        <form action="{{ route('roadmap.destroy', $roadmap) }}" method="POST" onsubmit="return confirm('⚠️ WARNING: This will delete the ENTIRE roadmap and ALL {{ $totalSteps }} tasks permanently. This action CANNOT be undone. Are you absolutely sure?')">
+                                        <form action="{{ route('roadmap.destroy', $roadmap) }}" method="POST" onsubmit="return confirm('WARNING: This will delete the ENTIRE roadmap and ALL {{ $totalSteps }} tasks permanently. This action CANNOT be undone. Are you absolutely sure?')">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-red-50 text-red-500 rounded-lg sm:rounded-xl hover:bg-red-500 hover:text-white transition-all border border-red-100 btn-press text-[10px] sm:text-xs font-bold touch-target w-full sm:w-auto justify-center">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -650,9 +648,9 @@
                         <div>
                             <label class="block text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 sm:mb-3 ml-1">Initial Status</label>
                             <select name="status" class="w-full bg-slate-50/80 border-2 border-slate-100 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-4 sm:px-6 text-sm sm:text-base font-semibold text-slate-700 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 outline-none backdrop-blur-sm appearance-none cursor-pointer touch-target">
-                                <option value="planned">📋 Planned</option>
-                                <option value="in_progress">🚀 In Progress</option>
-                                <option value="on_hold">⏸️ On Hold</option>
+                                <option value="planned">Planned</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="on_hold">On Hold</option>
                             </select>
                         </div>
                         <div>
@@ -672,7 +670,7 @@
                     <button type="submit" 
                         class="w-full sm:w-auto bg-slate-900 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:gradient-indigo hover:shadow-xl hover:shadow-indigo-200/50 transition-all shadow-lg shadow-slate-200/50 btn-press touch-target"
                         id="submitRoadmapBtn">
-                        🚀 Launch Journey
+                        Launch Journey
                     </button>
                 </div>
             </form>
@@ -783,8 +781,8 @@
                 }
             });
             
-            // 🔐 5. CONSOLE WARNING (Deter casual hackers)
-            console.log('%c⚠️ SECURITY WARNING', 'color: red; font-size: 20px; font-weight: bold;');
+            // 5. CONSOLE WARNING (Deter casual hackers)
+            console.log('%cSECURITY WARNING', 'color: red; font-size: 20px; font-weight: bold;');
             console.log('%cDo not paste any code into the console that you do not understand!', 'color: orange; font-size: 14px;');
             console.log('%cThis could allow attackers to steal your data or compromise your account.', 'color: orange; font-size: 14px;');
         });

@@ -22,7 +22,7 @@ class RoadmapController extends Controller
             ->orderBy('target_date', 'asc')
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         return view('roadmap.index', compact('roadmaps'));
     }
 
@@ -50,13 +50,13 @@ class RoadmapController extends Controller
 
         try {
             Auth::user()->roadmaps()->create($validated);
-            return back()->with('success', '🎯 Goal created successfully!');
+            return back()->with('success', 'Goal created successfully.');
         } catch (\Exception $e) {
             Log::error('Roadmap creation failed', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
             ]);
-            return back()->with('error', '❌ Failed to create goal. Please try again.');
+            return back()->with('error', 'Failed to create goal. Please try again.');
         }
     }
 
@@ -102,7 +102,7 @@ class RoadmapController extends Controller
                 'roadmap_id' => $roadmap->id,
                 'error' => $e->getMessage(),
             ]);
-            return back()->with('error', '❌ Failed to add task.');
+            return back()->with('error', 'Failed to add task.');
         }
     }
 
@@ -116,13 +116,13 @@ class RoadmapController extends Controller
         try {
             $roadmap->steps()->delete();
             $roadmap->delete();
-            return back()->with('success', '🗑️ Roadmap deleted!');
+            return back()->with('success', 'Roadmap deleted successfully.');
         } catch (\Exception $e) {
             Log::error('Roadmap delete failed', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
             ]);
-            return back()->with('error', '❌ Failed to delete roadmap.');
+            return back()->with('error', 'Failed to delete roadmap.');
         }
     }
 
@@ -138,13 +138,13 @@ class RoadmapController extends Controller
                 'is_completed' => !$step->is_completed,
                 'progress' => $step->is_completed ? 0 : 100,
             ]);
-            return back()->with('success', '🔄 Task status updated!');
+            return back()->with('success', 'Task status updated.');
         } catch (\Exception $e) {
             Log::error('Step toggle failed', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
             ]);
-            return back()->with('error', '❌ Failed to update task.');
+            return back()->with('error', 'Failed to update task.');
         }
     }
 
@@ -190,13 +190,13 @@ class RoadmapController extends Controller
 
         try {
             $step->delete();
-            return back()->with('success', '🗑️ Task deleted!');
+            return back()->with('success', 'Task deleted.');
         } catch (\Exception $e) {
             Log::error('Step delete failed', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
             ]);
-            return back()->with('error', '❌ Failed to delete task.');
+            return back()->with('error', 'Failed to delete task.');
         }
     }
 }

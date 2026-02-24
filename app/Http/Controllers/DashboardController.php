@@ -22,7 +22,7 @@ class DashboardController extends Controller
         $recentTasks = Task::with(['subtasks'])
             ->where('user_id', $userId)
             ->where('status', 'pending')
-            ->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
+            ->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END")
             ->latest()
             ->take(4)
             ->get();
@@ -32,9 +32,11 @@ class DashboardController extends Controller
 
         // Hitung task per kategori (hanya yang pending)
         $taskPerCategory = Category::where('user_id', $userId)
-            ->withCount(['tasks' => function ($query) {
-                $query->where('status', 'pending');
-            }])->get();
+            ->withCount([
+                'tasks' => function ($query) {
+                    $query->where('status', 'pending');
+                }
+            ])->get();
 
         // Cek apakah user sudah punya kategori
         $hasCategories = Category::where('user_id', $userId)->exists();
