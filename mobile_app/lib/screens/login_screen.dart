@@ -80,10 +80,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.check_rounded,
-                    color: Colors.white,
-                    size: 36,
+                  child: Center(
+                    child: Text(
+                      'P',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 40,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -2,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

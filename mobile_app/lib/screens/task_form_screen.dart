@@ -5,6 +5,7 @@ import '../models/task.dart';
 import '../models/category.dart';
 import '../services/task_service.dart';
 import '../services/auth_service.dart';
+import 'category_screen.dart';
 
 class TaskFormScreen extends StatefulWidget {
   final Task? task; // null = create, non-null = edit
@@ -69,7 +70,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 
     // ── Notify user to create a category first ──
     if (!_isEditing && _categories.isEmpty && mounted) {
-      await showDialog<bool>(
+      final result = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
@@ -114,6 +115,12 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       );
       if (mounted) {
         Navigator.pop(context); // Close task form
+        if (result == true) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CategoryScreen()),
+          );
+        }
       }
     }
   }

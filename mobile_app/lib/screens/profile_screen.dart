@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/task_service.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -442,6 +443,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             activeColor: const Color(0xFF4F46E5),
                           ),
                   ],
+                ),
+              ],
+            ),
+          ),
+          // Website link
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'WEBSITE VERSION',
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.5,
+                    color: Colors.grey[400],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () async {
+                    final url = Uri.parse(
+                      'https://productivityapp.up.railway.app/',
+                    );
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url);
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.language,
+                        color: Color(0xFF4F46E5),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Click to visit the website',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF4F46E5),
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.open_in_new,
+                        color: Colors.grey[400],
+                        size: 16,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
