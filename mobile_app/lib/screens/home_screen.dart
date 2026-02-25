@@ -10,6 +10,8 @@ import 'category_screen.dart';
 import 'profile_screen.dart';
 import 'task_form_screen.dart';
 import 'login_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -72,6 +74,18 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadUser();
+    _requestPermissionsSequentially();
+  }
+
+  Future<void> _requestPermissionsSequentially() async {
+    await Permission.notification.request();
+    await Permission.scheduleExactAlarm.request();
+    await Permission.storage.request();
+    await Permission.photos.request();
+    await Permission.videos.request();
+
+    // Schedule notifications ONLY after permissions have been asked
+    NotificationService.scheduleDailyReflection();
   }
 
   Future<void> _loadUser() async {

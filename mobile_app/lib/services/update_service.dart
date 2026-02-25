@@ -38,7 +38,19 @@ class UpdateService {
     print('Server Version: $serverVerClean');
     print('====================================');
 
-    return localVersion != serverVerClean;
+    List<int> localParts = localVersion.split('.').map(int.parse).toList();
+    List<int> serverParts = serverVerClean.split('.').map(int.parse).toList();
+
+    for (int i = 0; i < serverParts.length; i++) {
+      int localPart = i < localParts.length ? localParts[i] : 0;
+      if (serverParts[i] > localPart) {
+        return true; // Server is higher
+      } else if (serverParts[i] < localPart) {
+        return false; // Local is higher
+      }
+    }
+
+    return false; // Equal
   }
 
   static Future<void> checkAndShowUpdate([BuildContext? context]) async {

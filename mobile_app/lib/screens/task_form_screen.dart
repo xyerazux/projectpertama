@@ -38,6 +38,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   bool _uploadingFile = false;
   double _uploadProgress = 0.0;
   List<Attachment> _attachments = [];
+  final List<File> _pendingFiles = [];
 
   bool get _isEditing => widget.task != null;
 
@@ -167,6 +168,13 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
           .toList();
       if (files.isEmpty) return;
 
+      if (!_isEditing) {
+        setState(() {
+          _pendingFiles.addAll(files);
+        });
+        return;
+      }
+
       setState(() {
         _uploadingFile = true;
         _uploadProgress = 0.0;
@@ -286,6 +294,30 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       }
 
       if (result['success'] == true) {
+        final newTaskId = _isEditing ? widget.task!.id : result['data']?['id'];
+
+        // Upload pending files if any
+        if (!_isEditing && _pendingFiles.isNotEmpty && newTaskId != null) {
+          setState(() {
+            _uploadingFile = true;
+            _error = 'Task created. Uploading your files...';
+          });
+          try {
+            await AttachmentService.uploadAttachments(
+              'tasks',
+              newTaskId,
+              _pendingFiles,
+              (count, total) {},
+            );
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to upload some files: $e')),
+              );
+            }
+          }
+        }
+
         if (mounted) Navigator.pop(context, true);
       } else {
         final errors = result['errors'];
@@ -540,43 +572,63 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                           textColor: const Color(0xFF4F46E5),
                         ),
 
-                        if (_isEditing) ...[
-                          const SizedBox(height: 20),
-                          Divider(color: Colors.grey[100]),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _label(
-                                'FILE ATTACHMENTS',
-                                color: const Color(0xFF4F46E5),
-                              ),
-                              if (_uploadingFile)
-                                SizedBox(
-                                  width: 100,
-                                  child: LinearProgressIndicator(
-                                    value: _uploadProgress,
-                                    backgroundColor: Colors.grey[200],
-                                    color: const Color(0xFF4F46E5),
-                                  ),
-                                )
-                              else
-                                TextButton.icon(
-                                  onPressed: _pickAndUploadFiles,
-                                  icon: const Icon(Icons.upload_file, size: 16),
-                                  label: Text(
-                                    'UPLOAD',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                        const SizedBox(height: 20),
+                        Divider(color: Colors.grey[100]),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _label(
+                              'FILE ATTACHMENTS',
+                              color: const Color(0xFF4F46E5),
+                            ),
+                            if (_uploadingFile)
+                              SizedBox(
+                                width: 100,
+                                child: LinearProgressIndicator(
+                                  value: _uploadProgress,
+                                  backgroundColor: Colors.grey[200],
+                                  color: const Color(0xFF4F46E5),
+                                ),
+                              )
+                            else
+                              TextButton.icon(
+                                onPressed: _pickAndUploadFiles,
+                                icon: const Icon(Icons.upload_file, size: 16),
+                                label: Text(
+                                  'UPLOAD',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
-                            ],
-                          ),
+                              ),
+                          ],
+                        ),
+                        if (_attachments.isNotEmpty)
                           AttachmentList(
                             attachments: _attachments,
                             onDelete: _deleteAttachment,
+                          ),
+                        if (_pendingFiles.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _pendingFiles.map((f) {
+                              return Chip(
+                                label: Text(
+                                  f.path.split('/').last,
+                                  style: GoogleFonts.inter(fontSize: 10),
+                                ),
+                                deleteIcon: const Icon(Icons.close, size: 16),
+                                onDeleted: () {
+                                  setState(() {
+                                    _pendingFiles.remove(f);
+                                  });
+                                },
+                              );
+                            }).toList(),
                           ),
                         ],
                         const SizedBox(height: 20),

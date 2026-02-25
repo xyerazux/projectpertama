@@ -7,7 +7,6 @@ import 'services/connectivity_service.dart';
 import 'services/notification_service.dart';
 import 'widgets/daily_reflection_bottom_sheet.dart';
 import 'services/update_service.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -69,23 +68,9 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
-    _requestPermissions();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateService.checkAndShowUpdate(navigatorKey.currentContext);
     });
-  }
-
-  Future<void> _requestPermissions() async {
-    await [
-      Permission.notification,
-      Permission.storage,
-      Permission.photos,
-      Permission.videos,
-      Permission.scheduleExactAlarm,
-    ].request();
-
-    // Schedule notifications ONLY after permissions have been asked
-    NotificationService.scheduleDailyReflection();
   }
 
   @override

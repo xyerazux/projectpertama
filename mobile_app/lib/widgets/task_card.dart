@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:math';
 import '../models/task.dart';
-import '../services/task_service.dart';
+import '../data/motivation_data.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -293,7 +294,7 @@ class TaskCard extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Asking Gemini...',
+                            'Getting motivated...',
                             style: GoogleFonts.inter(fontSize: 12),
                           ),
                           duration: const Duration(seconds: 1),
@@ -301,11 +302,11 @@ class TaskCard extends StatelessWidget {
                         ),
                       );
 
-                      final motivation = await TaskService.getMotivation(
-                        task.title,
-                      );
+                      final random = Random();
+                      final motivation = MotivationData
+                          .quotes[random.nextInt(MotivationData.quotes.length)];
 
-                      if (context.mounted && motivation != null) {
+                      if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
