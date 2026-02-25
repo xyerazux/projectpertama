@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:mime_type/mime_type.dart';
 import '../config/api_config.dart';
 import '../models/attachment.dart';
 
@@ -30,12 +32,23 @@ class AttachmentService {
 
     final formData = FormData();
     for (int i = 0; i < files.length; i++) {
+      String? mimeStr = mime(files[i].path);
+      MediaType? mediaType;
+
+      if (mimeStr != null) {
+        final parts = mimeStr.split('/');
+        if (parts.length == 2) {
+          mediaType = MediaType(parts[0], parts[1]);
+        }
+      }
+
       formData.files.add(
         MapEntry(
           'files[]',
           await MultipartFile.fromFile(
             files[i].path,
             filename: files[i].path.split('/').last,
+            contentType: mediaType,
           ),
         ),
       );
