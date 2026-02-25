@@ -5,7 +5,6 @@ import '../models/task.dart';
 import '../models/category.dart';
 import '../services/task_service.dart';
 import '../services/auth_service.dart';
-import 'category_screen.dart';
 
 class TaskFormScreen extends StatefulWidget {
   final Task? task; // null = create, non-null = edit
@@ -70,7 +69,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 
     // ── Notify user to create a category first ──
     if (!_isEditing && _categories.isEmpty && mounted) {
-      final result = await showDialog<bool>(
+      await showDialog(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
@@ -87,27 +86,13 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(ctx),
               child: Text(
-                'Cancel',
+                'OK',
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.w700,
-                  color: Colors.grey[500],
+                  color: const Color(0xFF4F46E5),
                 ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4F46E5),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                'Go to Categories',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -115,12 +100,6 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       );
       if (mounted) {
         Navigator.pop(context); // Close task form
-        if (result == true) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CategoryScreen()),
-          );
-        }
       }
     }
   }

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/task.dart';
+import '../services/task_service.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -284,6 +285,49 @@ class TaskCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 6, 18, 18),
               child: Row(
                 children: [
+                  // Lightbulb Motivation Icon
+                  _actionButton(
+                    Icons.lightbulb_outline_rounded,
+                    const Color(0xFFF59E0B),
+                    () async {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Asking Gemini...',
+                            style: GoogleFonts.inter(fontSize: 12),
+                          ),
+                          duration: const Duration(seconds: 1),
+                          backgroundColor: Colors.grey[800],
+                        ),
+                      );
+
+                      final motivation = await TaskService.getMotivation(
+                        task.title,
+                      );
+
+                      if (context.mounted && motivation != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              motivation,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: const Color(0xFF10B981),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 8),
+
                   Icon(
                     Icons.calendar_today_rounded,
                     size: 13,

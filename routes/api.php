@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\RoadmapController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ReflectionController;
+use App\Http\Controllers\Api\MotivatorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/profile/priority', [ProfileController::class, 'updatePriority']);
     });
 
+    // Reflections
+    Route::post('/reflections', [ReflectionController::class, 'store']);
+
     // Categories — read
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{category}', [CategoryController::class, 'show']);
@@ -57,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/tasks/{task}', [TaskController::class, 'update']);
         Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
         Route::post('/tasks/{task}/complete', [TaskController::class, 'complete']);
+        Route::post('/tasks/motivate', [MotivatorController::class, 'motivate']);
         Route::patch('/tasks/{id}/restore', [TaskController::class, 'restore']);
         Route::delete('/tasks/{id}/force', [TaskController::class, 'forceDelete']);
         Route::patch('/subtasks/{subtask}/toggle', [TaskController::class, 'toggleSubtask']);

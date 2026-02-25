@@ -4,10 +4,33 @@ import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
 import 'services/connectivity_service.dart';
+import 'services/notification_service.dart';
+import 'widgets/daily_reflection_bottom_sheet.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ConnectivityService.init();
+
+  await NotificationService.initialize();
+  await NotificationService.requestPermission();
+  await NotificationService.scheduleDailyReflection();
+
+  NotificationService.onNotificationClick = (String? payload) {
+    if (payload == 'daily_reflection') {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => const DailyReflectionBottomSheet(),
+        );
+      }
+    }
+  };
+
   runApp(const TaskManagerApp());
 }
 
@@ -17,6 +40,7 @@ class TaskManagerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Productivityapp',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

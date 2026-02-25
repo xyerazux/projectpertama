@@ -156,6 +156,34 @@ class TaskService {
     return jsonDecode(response.body);
   }
 
+  // ── POST motivation for task ───────────────────────
+  static Future<String?> getMotivation(String taskTitle) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/tasks/motivate'),
+        headers: await _headers(),
+        body: jsonEncode({'task_title': taskTitle}),
+      );
+      final body = jsonDecode(response.body);
+      return body['motivation'];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── POST submit reflection ────────────────────────
+  static Future<Map<String, dynamic>> submitReflection({
+    required String mood,
+    String? note,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.baseUrl}/reflections'),
+      headers: await _headers(),
+      body: jsonEncode({'mood': mood, 'note': note}),
+    );
+    return jsonDecode(response.body);
+  }
+
   // ── DELETE soft delete ──────────────────────────
   static Future<Map<String, dynamic>> deleteTask(int taskId) async {
     final response = await http.delete(
