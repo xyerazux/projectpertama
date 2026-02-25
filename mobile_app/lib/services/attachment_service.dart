@@ -77,7 +77,20 @@ class AttachmentService {
       print('=== DEEP DIAGNOSTIC UPLOAD ERROR ===');
       print(e.response?.data);
       print('====================================');
-      throw Exception(e.response?.data['message'] ?? e.message);
+
+      String errorMessage = e.message ?? 'Unknown upload error';
+      if (e.response?.data != null && e.response?.data is Map) {
+        final data = e.response!.data as Map;
+        if (data.containsKey('errors')) {
+          final errors = data['errors'] as Map;
+          if (errors.isNotEmpty) {
+            errorMessage = errors.values.first.first.toString();
+          }
+        } else if (data.containsKey('message')) {
+          errorMessage = data['message'].toString();
+        }
+      }
+      throw Exception(errorMessage);
     }
   }
 
