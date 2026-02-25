@@ -14,7 +14,7 @@ class RoadmapController extends Controller
     public function index()
     {
         $roadmaps = Auth::user()->roadmaps()
-            ->with('steps')
+            ->with(['steps', 'attachments'])
             ->orderBy('target_date', 'asc')
             ->orderBy('created_at', 'desc')
             ->get()
@@ -73,7 +73,7 @@ class RoadmapController extends Controller
     {
         $roadmaps = Auth::user()->roadmaps()
             ->onlyTrashed()
-            ->with('steps')
+            ->with(['steps', 'attachments'])
             ->orderBy('deleted_at', 'desc')
             ->get();
 

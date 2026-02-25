@@ -126,7 +126,7 @@ class AttachmentList extends StatelessWidget {
       children: [
         const SizedBox(height: 16),
         Text(
-          'Attachments',
+          'Lampiran File',
           style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
@@ -155,16 +155,29 @@ class AttachmentList extends StatelessWidget {
                   style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
                 ),
                 onTap: () => _handleTap(context, attachment),
-                trailing: isOwner
-                    ? IconButton(
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.open_in_new,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
+                      tooltip: 'Buka File',
+                      onPressed: () => _handleTap(context, attachment),
+                    ),
+                    if (isOwner)
+                      IconButton(
                         icon: const Icon(
                           Icons.delete_outline,
                           color: Colors.red,
                           size: 20,
                         ),
                         onPressed: () => onDelete(attachment.id),
-                      )
-                    : null,
+                      ),
+                  ],
+                ),
               ),
             );
           },

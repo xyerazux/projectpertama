@@ -52,12 +52,15 @@ class AttachmentController extends Controller
             }
 
             foreach ($request->file('files') as $file) {
-                $filename = Str::uuid() . '_' . $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension() ?: 'bin';
+                $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $shortName = substr($originalName, 0, 100) . '.' . $extension;
+                $filename = time() . '_' . Str::random(10) . '.' . $extension;
                 $path = $file->storeAs('attachments', $filename, 'public');
 
                 $attachment = $parent->attachments()->create([
                     'file_path' => $path,
-                    'file_name' => $file->getClientOriginalName(),
+                    'file_name' => $shortName,
                     'file_mime_type' => $file->getMimeType(),
                     'file_size' => $file->getSize(),
                     'uploaded_by' => $request->user()->id,

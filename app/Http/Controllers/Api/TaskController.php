@@ -34,7 +34,7 @@ class TaskController extends Controller
             }
         }
 
-        $query = Task::with(['category', 'subtasks'])
+        $query = Task::with(['category', 'subtasks', 'attachments'])
             ->where('user_id', $user->id)
             ->where('status', 'pending');
 
@@ -278,7 +278,7 @@ class TaskController extends Controller
     // ──────────────────────────────────────────────
     public function completed()
     {
-        $tasks = Task::with(['category', 'subtasks'])
+        $tasks = Task::with(['category', 'subtasks', 'attachments'])
             ->where('user_id', Auth::id())
             ->where('status', 'completed')
             ->latest()
@@ -295,7 +295,8 @@ class TaskController extends Controller
     // ──────────────────────────────────────────────
     public function trash()
     {
-        $tasks = Task::onlyTrashed()
+        $tasks = Task::with(['category', 'subtasks', 'attachments'])
+            ->onlyTrashed()
             ->where('user_id', Auth::id())
             ->latest()
             ->paginate(10);
