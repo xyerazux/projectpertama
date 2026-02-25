@@ -117,7 +117,7 @@ class AttachmentController extends Controller
         }
 
         // Generate public URL
-        $url = asset(Storage::url($attachment->file_path));
+        $url = rtrim(config('app.url'), '/') . '/storage/attachments/' . basename($attachment->file_path);
 
         return response()->json([
             'success' => true,

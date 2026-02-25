@@ -73,11 +73,11 @@ Route::get('/optimize', function () {
 
 // fallback for storage files if symlink fails on Railway
 Route::get('storage/attachments/{filename}', function ($filename) {
-    $path = storage_path('app/public/attachments/' . $filename);
+    $path = storage_path('app/public/attachments/' . basename($filename));
     if (!file_exists($path)) {
         abort(404, 'File not found on server.');
     }
     return response()->file($path);
-});
+})->where('filename', '.*');
 
 require __DIR__ . '/auth.php';

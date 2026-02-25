@@ -168,10 +168,24 @@ class TaskCard extends StatelessWidget {
                           onTap: () async {
                             final uri = Uri.parse(task.linkAttachment!);
                             if (await canLaunchUrl(uri)) {
-                              await launchUrl(
-                                uri,
-                                mode: LaunchMode.externalApplication,
-                              );
+                              try {
+                                bool launched = await launchUrl(
+                                  uri,
+                                  mode:
+                                      LaunchMode.externalNonBrowserApplication,
+                                );
+                                if (!launched) {
+                                  await launchUrl(
+                                    uri,
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                }
+                              } catch (e) {
+                                await launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              }
                             }
                           },
                           child: Container(

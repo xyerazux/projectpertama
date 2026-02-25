@@ -21,7 +21,7 @@ class Attachment extends Model
 
     public function getFileUrlAttribute()
     {
-        return url('storage/attachments/' . basename($this->file_path));
+        return rtrim(config('app.url'), '/') . '/storage/attachments/' . basename($this->file_path);
     }
 
     /**
