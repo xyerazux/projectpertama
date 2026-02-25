@@ -12,6 +12,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ConnectivityService.init();
+  await NotificationService.initialize();
 
   NotificationService.onNotificationClick = (String? payload) {
     if (payload == 'daily_reflection') {
@@ -26,8 +27,6 @@ void main() async {
       }
     }
   };
-
-  await NotificationService.initialize();
 
   // Request permission and schedule reflection asynchronously
   // without blocking the main app startup.
