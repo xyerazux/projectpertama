@@ -3,8 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/task_service.dart';
 import '../models/task.dart';
 import '../widgets/task_card.dart';
-import '../services/update_service.dart';
-import 'package:ota_update/ota_update.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,121 +14,10 @@ class DashboardScreen extends StatefulWidget {
 class DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic> _data = {};
   bool _loading = true;
-  double _downloadProgress = 0;
-  bool _isDownloading = false;
-
   @override
   void initState() {
     super.initState();
     loadData();
-    _checkVersion();
-  }
-
-  Future<void> _checkVersion() async {
-    final config = await UpdateService.checkUpdate();
-    if (config != null) {
-      final serverVersion = config['latest_version'];
-      final downloadUrl = config['download_url'];
-
-      final isAvailable = await UpdateService.isUpdateAvailable(serverVersion);
-      if (isAvailable && mounted) {
-        _showUpdateDialog(serverVersion, downloadUrl);
-      }
-    }
-  }
-
-  void _showUpdateDialog(String version, String url) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: Text(
-              'New Update Available',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w800),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'New version $version is available. Update now to get the latest features.',
-                  style: GoogleFonts.inter(fontSize: 14),
-                ),
-                if (_isDownloading) ...[
-                  const SizedBox(height: 20),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: _downloadProgress / 100,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF4F46E5),
-                      ),
-                      minHeight: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Downloading: ${_downloadProgress.toInt()}%',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              if (!_isDownloading)
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Later',
-                    style: GoogleFonts.inter(color: Colors.grey),
-                  ),
-                ),
-              if (!_isDownloading)
-                ElevatedButton(
-                  onPressed: () {
-                    setDialogState(() => _isDownloading = true);
-                    UpdateService.performUpdate(url).listen((OtaEvent event) {
-                      setDialogState(() {
-                        _downloadProgress =
-                            double.tryParse(event.value ?? '0') ?? 0;
-                        if (event.status == OtaStatus.INSTALLING ||
-                            event.status == OtaStatus.ALREADY_RUNNING_ERROR ||
-                            event.status ==
-                                OtaStatus.PERMISSION_NOT_GRANTED_ERROR ||
-                            event.status == OtaStatus.INTERNAL_ERROR ||
-                            event.status == OtaStatus.DOWNLOAD_ERROR ||
-                            event.status == OtaStatus.CHECKSUM_ERROR) {
-                          _isDownloading = false;
-                        }
-                      });
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F46E5),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Text(
-                    'Update Now',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
   }
 
   Future<void> loadData() async {
