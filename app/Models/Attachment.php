@@ -17,6 +17,13 @@ class Attachment extends Model
         'uploaded_by',
     ];
 
+    protected $appends = ['file_url'];
+
+    public function getFileUrlAttribute()
+    {
+        return asset(\Illuminate\Support\Facades\Storage::url($this->file_path));
+    }
+
     /**
      * Get the parent attachable model (task or roadmap).
      */

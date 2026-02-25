@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:video_player/video_player.dart';
 import '../models/attachment.dart';
 import '../services/attachment_service.dart';
 
@@ -19,49 +17,45 @@ class AttachmentList extends StatelessWidget {
   });
 
   Future<void> _handleTap(BuildContext context, Attachment attachment) async {
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+    // If the backend has provided fileUrl via eager loading and accessor, use it.
+    // Otherwise fallback to the view endpoint.
+    String? url = attachment.fileUrl;
+
+    if (url == null) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+      try {
+        url = await AttachmentService.getViewUrl(attachment.id);
+      } finally {
+        if (context.mounted) Navigator.pop(context);
+      }
+    }
+
+    if (url == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load attachment')),
+        );
+      }
+      return;
+    }
 
     try {
-      final url = await AttachmentService.getViewUrl(attachment.id);
-      if (context.mounted) Navigator.pop(context); // Close loading
-
-      if (url == null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not load attachment')),
-          );
-        }
-        return;
-      }
-
-      if (attachment.fileMimeType.startsWith('image/')) {
-        if (context.mounted) {
-          _showImageFullScreen(context, url);
-        }
-      } else if (attachment.fileMimeType.startsWith('video/')) {
-        if (context.mounted) {
-          _showVideoFullScreen(context, url);
-        }
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        // Document or other
-        if (await canLaunchUrl(Uri.parse(url))) {
-          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        } else {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Could not open file')),
-            );
-          }
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Could not open file')));
         }
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.pop(context); // Close loading if open
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -69,49 +63,21 @@ class AttachmentList extends StatelessWidget {
     }
   }
 
-  void _showImageFullScreen(BuildContext context, String url) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-          body: Center(
-            child: InteractiveViewer(
-              child: CachedNetworkImage(
-                imageUrl: url,
-                placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
-                errorWidget: (context, url, error) =>
-                    const Icon(Icons.error, color: Colors.white),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showVideoFullScreen(BuildContext context, String url) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => VideoPlayerScreen(url: url)),
-    );
-  }
-
   Widget _buildIcon(Attachment attachment) {
-    final mime = attachment.fileMimeType;
-    if (mime.startsWith('image/')) {
+    final lowerName = attachment.fileName.toLowerCase();
+
+    if (lowerName.endsWith('.jpg') ||
+        lowerName.endsWith('.jpeg') ||
+        lowerName.endsWith('.png')) {
       return const Icon(Icons.image, color: Colors.blue);
-    } else if (mime.startsWith('video/')) {
-      return const Icon(Icons.video_library, color: Colors.red);
-    } else if (mime.startsWith('audio/')) {
+    } else if (lowerName.endsWith('.mp4') || lowerName.endsWith('.mov')) {
+      return const Icon(Icons.videocam, color: Colors.red);
+    } else if (lowerName.endsWith('.mp3') || lowerName.endsWith('.wav')) {
       return const Icon(Icons.audiotrack, color: Colors.purple);
-    } else if (mime.contains('pdf')) {
-      return const Icon(Icons.picture_as_pdf, color: Colors.redAccent);
+    } else if (lowerName.endsWith('.pdf') ||
+        lowerName.endsWith('.doc') ||
+        lowerName.endsWith('.docx')) {
+      return const Icon(Icons.description, color: Colors.redAccent);
     } else {
       return const Icon(Icons.insert_drive_file, color: Colors.grey);
     }
@@ -121,139 +87,74 @@ class AttachmentList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (attachments.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        Text(
-          'Lampiran File',
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ExpansionTile(
+        title: Text(
+          'Lampiran (${attachments.length})',
           style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
         ),
-        const SizedBox(height: 8),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: attachments.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final attachment = attachments[index];
-            return Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[200]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: ListTile(
-                leading: _buildIcon(attachment),
-                title: Text(
-                  attachment.fileName,
-                  style: GoogleFonts.inter(fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  '${(attachment.fileSize / 1024).toStringAsFixed(1)} KB',
-                  style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
-                ),
-                onTap: () => _handleTap(context, attachment),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.open_in_new,
-                        color: Colors.blue,
-                        size: 20,
-                      ),
-                      tooltip: 'Buka File',
-                      onPressed: () => _handleTap(context, attachment),
+        initiallyExpanded: false,
+        childrenPadding: const EdgeInsets.only(bottom: 8.0),
+        children: [
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: attachments.length,
+            itemBuilder: (context, index) {
+              final attachment = attachments[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[200]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ListTile(
+                    leading: _buildIcon(attachment),
+                    title: Text(
+                      attachment.fileName,
+                      style: GoogleFonts.inter(fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (isOwner)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.red,
-                          size: 20,
-                        ),
-                        onPressed: () => onDelete(attachment.id),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class VideoPlayerScreen extends StatefulWidget {
-  final String url;
-
-  const VideoPlayerScreen({super.key, required this.url});
-
-  @override
-  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
-}
-
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
-  late VideoPlayerController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..initialize().then((_) {
-        setState(() {});
-        _controller.play();
-      });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Center(
-        child: _controller.value.isInitialized
-            ? AspectRatio(
-                aspectRatio: _controller.value.aspectRatio,
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    VideoPlayer(_controller),
-                    VideoProgressIndicator(_controller, allowScrubbing: true),
-                    Center(
-                      child: IconButton(
-                        icon: Icon(
-                          _controller.value.isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                          color: Colors.white,
-                          size: 50,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _controller.value.isPlaying
-                                ? _controller.pause()
-                                : _controller.play();
-                          });
-                        },
+                    subtitle: Text(
+                      '${(attachment.fileSize / 1024).toStringAsFixed(1)} KB',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.grey,
                       ),
                     ),
-                  ],
+                    onTap: () => _handleTap(context, attachment),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.open_in_new,
+                            color: Colors.blue,
+                            size: 20,
+                          ),
+                          tooltip: 'Buka File',
+                          onPressed: () => _handleTap(context, attachment),
+                        ),
+                        if (isOwner)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                              size: 20,
+                            ),
+                            onPressed: () => onDelete(attachment.id),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
-              )
-            : const CircularProgressIndicator(),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
