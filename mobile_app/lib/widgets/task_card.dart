@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:dio/dio.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/task.dart';
 import '../data/motivation_data.dart';
 import 'attachment_list.dart';
@@ -161,91 +159,42 @@ class TaskCard extends StatelessWidget {
                         ),
                       ],
 
-                      // ── Attachment Link ──
+                      // ── Link Attachment (user-entered URL → open in browser) ──
                       if (task.linkAttachment != null &&
                           task.linkAttachment!.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         GestureDetector(
                           onTap: () async {
-                            final rawUrl = task.linkAttachment!;
-                            if (rawUrl.isEmpty) return;
-
-                            // Normalize: ensure the URL has a https:// scheme
+                            final rawUrl = task.linkAttachment!.trim();
                             final url = rawUrl.startsWith('http')
                                 ? rawUrl
                                 : 'https://$rawUrl';
-                            print('[TaskCard] 🔗 Link attachment URL: $url');
 
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (_) => const Center(
-                                child: Card(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.0),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        CircularProgressIndicator(),
-                                        SizedBox(height: 16),
-                                        Text('Opening...'),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
+                            print(
+                              '[TaskCard] 🔗 Opening link in browser: $url',
                             );
 
                             try {
-                              final tempDir = await getTemporaryDirectory();
-                              final timestamp =
-                                  DateTime.now().millisecondsSinceEpoch;
-
-                              String fileName = url.split('/').last;
-                              if (fileName.isEmpty || !fileName.contains('.')) {
-                                fileName = 'attachment_$timestamp.bin';
-                              }
-
-                              final savePath =
-                                  '${tempDir.path}/${timestamp}_$fileName';
-                              print('[TaskCard] 💾 Saving to: $savePath');
-
-                              final dio = Dio(
-                                BaseOptions(
-                                  connectTimeout: const Duration(seconds: 30),
-                                  receiveTimeout: const Duration(seconds: 60),
-                                ),
-                              );
-                              await dio.download(url, savePath);
-                              print('[TaskCard] ✅ Download complete');
-
-                              if (context.mounted)
-                                Navigator.pop(context); // close dialog
-
-                              final result = await OpenFilex.open(savePath);
-                              print(
-                                '[TaskCard] 📂 OpenFilex: ${result.type} — ${result.message}',
-                              );
-                              if (result.type != ResultType.done &&
-                                  result.type != ResultType.fileNotFound) {
+                              final uri = Uri.parse(url);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } else {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text(
-                                        'Could not open: ${result.message}',
-                                      ),
+                                      content: Text('Cannot open: $url'),
                                     ),
                                   );
                                 }
                               }
                             } catch (e) {
-                              print('[TaskCard] ❌ Error: $e');
+                              print('[TaskCard] ❌ Error opening URL: $e');
                               if (context.mounted) {
-                                Navigator.pop(context); // close dialog
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Error opening link: $e'),
-                                  ),
+                                  SnackBar(content: Text('Error: $e')),
                                 );
                               }
                             }
@@ -271,13 +220,23 @@ class TaskCard extends StatelessWidget {
                                   color: Colors.blue[600],
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  'View Attachment',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.blue[600],
+                                Flexible(
+                                  child: Text(
+                                    task.linkAttachment!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.blue[600],
+                                    ),
                                   ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.open_in_new_rounded,
+                                  size: 12,
+                                  color: Colors.blue[400],
                                 ),
                               ],
                             ),
