@@ -44,7 +44,7 @@ class AttachmentService {
 
       formData.files.add(
         MapEntry(
-          'files[]',
+          'attachments[]',
           await MultipartFile.fromFile(
             files[i].path,
             filename: files[i].path.split('/').last,
@@ -74,6 +74,9 @@ class AttachmentService {
         throw Exception(response.data['message'] ?? 'Failed to upload files');
       }
     } on DioException catch (e) {
+      print('=== DEEP DIAGNOSTIC UPLOAD ERROR ===');
+      print(e.response?.data);
+      print('====================================');
       throw Exception(e.response?.data['message'] ?? e.message);
     }
   }

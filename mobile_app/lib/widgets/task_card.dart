@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math';
 import '../models/task.dart';
-import '../data/motivation_data.dart';
+import '../core/constants/motivations.dart';
+import 'attachment_list.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -208,6 +209,17 @@ class TaskCard extends StatelessWidget {
                         ),
                       ],
 
+                      // ── File Attachments ──
+                      if (task.attachments.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        AttachmentList(
+                          attachments: task.attachments,
+                          isOwner: false,
+                          onDelete:
+                              (_) {}, // Disable delete from outside edit screen
+                        ),
+                      ],
+
                       // ── Subtask progress ──
                       if (task.totalSubtaskCount > 0) ...[
                         const SizedBox(height: 12),
@@ -303,8 +315,8 @@ class TaskCard extends StatelessWidget {
                       );
 
                       final random = Random();
-                      final motivation = MotivationData
-                          .quotes[random.nextInt(MotivationData.quotes.length)];
+                      final motivation = Motivations
+                          .quotes[random.nextInt(Motivations.quotes.length)];
 
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(

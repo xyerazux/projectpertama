@@ -108,6 +108,8 @@ class AttachmentList extends StatelessWidget {
       return const Icon(Icons.image, color: Colors.blue);
     } else if (mime.startsWith('video/')) {
       return const Icon(Icons.video_library, color: Colors.red);
+    } else if (mime.startsWith('audio/')) {
+      return const Icon(Icons.audiotrack, color: Colors.purple);
     } else if (mime.contains('pdf')) {
       return const Icon(Icons.picture_as_pdf, color: Colors.redAccent);
     } else {

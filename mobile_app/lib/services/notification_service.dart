@@ -38,11 +38,12 @@ class NotificationService {
   }
 
   static Future<void> requestPermission() async {
-    await _notificationsPlugin
+    final androidPlugin = _notificationsPlugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
+        >();
+    await androidPlugin?.requestNotificationsPermission();
+    await androidPlugin?.requestExactAlarmsPermission();
   }
 
   static Future<void> scheduleDailyReflection() async {
@@ -60,6 +61,8 @@ class NotificationService {
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
+
+    print("Notification scheduled for: $scheduledDate");
 
     await _notificationsPlugin.zonedSchedule(
       0, // id
