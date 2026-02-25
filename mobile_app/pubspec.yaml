@@ -23,6 +23,7 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   package_info_plus: ^9.0.0
   timezone: ^0.9.4
+  ota_update: ^7.1.0
 
 dev_dependencies:
   flutter_test:
