@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'dart:math';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart';
 import '../models/task.dart';
-import '../core/constants/motivations.dart';
+import '../data/motivation_data.dart';
 import 'attachment_list.dart';
 
 class TaskCard extends StatelessWidget {
@@ -166,24 +167,68 @@ class TaskCard extends StatelessWidget {
                         const SizedBox(height: 12),
                         GestureDetector(
                           onTap: () async {
-                            final uri = Uri.parse(task.linkAttachment!);
-                            if (await canLaunchUrl(uri)) {
-                              try {
-                                bool launched = await launchUrl(
-                                  uri,
-                                  mode:
-                                      LaunchMode.externalNonBrowserApplication,
-                                );
-                                if (!launched) {
-                                  await launchUrl(
-                                    uri,
-                                    mode: LaunchMode.externalApplication,
+                            final url = task.linkAttachment!;
+                            if (url.isEmpty) return;
+
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (_) => const Center(
+                                child: Card(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CircularProgressIndicator(),
+                                        SizedBox(height: 16),
+                                        Text('Opening...'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+
+                            try {
+                              final tempDir = await getTemporaryDirectory();
+                              final timestamp =
+                                  DateTime.now().millisecondsSinceEpoch;
+
+                              String fileName = url.split('/').last;
+                              if (fileName.isEmpty || !fileName.contains('.')) {
+                                fileName = 'attachment_$timestamp.bin';
+                              }
+
+                              final savePath =
+                                  '${tempDir.path}/${timestamp}_$fileName';
+
+                              final dio = Dio();
+                              await dio.download(url, savePath);
+
+                              if (context.mounted)
+                                Navigator.pop(context); // close dialog
+
+                              final result = await OpenFilex.open(savePath);
+                              if (result.type != ResultType.done &&
+                                  result.type != ResultType.fileNotFound) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Could not open: ${result.message}',
+                                      ),
+                                    ),
                                   );
                                 }
-                              } catch (e) {
-                                await launchUrl(
-                                  uri,
-                                  mode: LaunchMode.externalApplication,
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                Navigator.pop(context); // close dialog
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error opening link: $e'),
+                                  ),
                                 );
                               }
                             }
@@ -226,11 +271,27 @@ class TaskCard extends StatelessWidget {
                       // ── File Attachments ──
                       if (task.attachments.isNotEmpty) ...[
                         const SizedBox(height: 12),
-                        AttachmentList(
-                          attachments: task.attachments,
-                          isOwner: false,
-                          onDelete:
-                              (_) {}, // Disable delete from outside edit screen
+                        ExpansionTile(
+                          title: Text(
+                            'Lampiran (${task.attachments.length})',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          initiallyExpanded: false,
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: const EdgeInsets.only(bottom: 8),
+                          children: [
+                            AttachmentList(
+                              attachments: task.attachments,
+                              isOwner: false,
+                              onDelete:
+                                  (
+                                    _,
+                                  ) {}, // Disable delete from outside edit screen
+                            ),
+                          ],
                         ),
                       ],
 
@@ -328,9 +389,7 @@ class TaskCard extends StatelessWidget {
                         ),
                       );
 
-                      final random = Random();
-                      final motivation = Motivations
-                          .quotes[random.nextInt(Motivations.quotes.length)];
+                      final motivation = MotivationData.getNextQuote();
 
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(

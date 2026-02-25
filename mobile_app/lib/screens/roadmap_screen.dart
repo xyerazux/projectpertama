@@ -1085,74 +1085,71 @@ class RoadmapScreenState extends State<RoadmapScreen> {
                     Divider(height: 1, color: Colors.grey[100]),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'FILE ATTACHMENTS',
-                                style: GoogleFonts.inter(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 2,
-                                  color: Colors.grey[400],
+                      child: ExpansionTile(
+                        title: Text(
+                          'Lampiran (${attachments.length})',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2,
+                            color: const Color(0xFF4F46E5),
+                          ),
+                        ),
+                        initiallyExpanded: false,
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: const EdgeInsets.only(bottom: 8),
+                        trailing: uploading
+                            ? SizedBox(
+                                width: 80,
+                                height: 4,
+                                child: LinearProgressIndicator(
+                                  value: uploadProgress,
+                                  backgroundColor: Colors.grey[200],
+                                  color: const Color(0xFF4F46E5),
+                                ),
+                              )
+                            : InkWell(
+                                onTap: () => _pickAndUploadRoadmapFiles(index),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF4F46E5,
+                                    ).withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.upload_file_rounded,
+                                        size: 14,
+                                        color: Color(0xFF4F46E5),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        'UPLOAD',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1,
+                                          color: const Color(0xFF4F46E5),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              if (uploading)
-                                SizedBox(
-                                  width: 80,
-                                  child: LinearProgressIndicator(
-                                    value: uploadProgress,
-                                    backgroundColor: Colors.grey[200],
-                                    color: const Color(0xFF4F46E5),
-                                  ),
-                                )
-                              else
-                                InkWell(
-                                  onTap: () =>
-                                      _pickAndUploadRoadmapFiles(index),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFF4F46E5,
-                                      ).withOpacity(0.08),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.upload_file_rounded,
-                                          size: 14,
-                                          color: Color(0xFF4F46E5),
-                                        ),
-                                        const SizedBox(width: 3),
-                                        Text(
-                                          'UPLOAD',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 1,
-                                            color: const Color(0xFF4F46E5),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          AttachmentList(
-                            attachments: attachments,
-                            onDelete: (attId) =>
-                                _deleteRoadmapAttachment(index, attId),
-                          ),
+                        children: [
+                          if (attachments.isNotEmpty)
+                            AttachmentList(
+                              attachments: attachments,
+                              onDelete: (attId) =>
+                                  _deleteRoadmapAttachment(index, attId),
+                            ),
                         ],
                       ),
                     ),

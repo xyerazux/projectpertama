@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:open_file_plus/open_file_plus.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import '../models/attachment.dart';
@@ -77,7 +77,7 @@ class AttachmentList extends StatelessWidget {
 
       if (context.mounted) Navigator.pop(context); // close dialog
 
-      final result = await OpenFile.open(savePath);
+      final result = await OpenFilex.open(savePath);
       if (result.type != ResultType.done &&
           result.type != ResultType.fileNotFound) {
         if (context.mounted) {
@@ -120,75 +120,59 @@ class AttachmentList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (attachments.isEmpty) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ExpansionTile(
-        title: Text(
-          'Lampiran (${attachments.length})',
-          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-        initiallyExpanded: false,
-        childrenPadding: const EdgeInsets.only(bottom: 8.0),
-        children: [
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: attachments.length,
-            itemBuilder: (context, index) {
-              final attachment = attachments[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[200]!),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: ListTile(
-                    leading: _buildIcon(attachment),
-                    title: Text(
-                      attachment.fileName,
-                      style: GoogleFonts.inter(fontSize: 14),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: attachments.length,
+      itemBuilder: (context, index) {
+        final attachment = attachments[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[200]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListTile(
+              leading: _buildIcon(attachment),
+              title: Text(
+                attachment.fileName,
+                style: GoogleFonts.inter(fontSize: 14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                '${(attachment.fileSize / 1024).toStringAsFixed(1)} KB',
+                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+              ),
+              onTap: () => _handleTap(context, attachment),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.open_in_new,
+                      color: Colors.blue,
+                      size: 20,
                     ),
-                    subtitle: Text(
-                      '${(attachment.fileSize / 1024).toStringAsFixed(1)} KB',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: Colors.grey,
+                    tooltip: 'Buka File',
+                    onPressed: () => _handleTap(context, attachment),
+                  ),
+                  if (isOwner)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 20,
                       ),
+                      onPressed: () => onDelete(attachment.id),
                     ),
-                    onTap: () => _handleTap(context, attachment),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.open_in_new,
-                            color: Colors.blue,
-                            size: 20,
-                          ),
-                          tooltip: 'Buka File',
-                          onPressed: () => _handleTap(context, attachment),
-                        ),
-                        if (isOwner)
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.red,
-                              size: 20,
-                            ),
-                            onPressed: () => onDelete(attachment.id),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -575,62 +575,72 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                         const SizedBox(height: 20),
                         Divider(color: Colors.grey[100]),
                         const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _label(
-                              'FILE ATTACHMENTS',
+                        ExpansionTile(
+                          title: Text(
+                            'Lampiran (${_attachments.length + _pendingFiles.length})',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
                               color: const Color(0xFF4F46E5),
                             ),
-                            if (_uploadingFile)
-                              SizedBox(
-                                width: 100,
-                                child: LinearProgressIndicator(
-                                  value: _uploadProgress,
-                                  backgroundColor: Colors.grey[200],
-                                  color: const Color(0xFF4F46E5),
-                                ),
-                              )
-                            else
-                              TextButton.icon(
-                                onPressed: _pickAndUploadFiles,
-                                icon: const Icon(Icons.upload_file, size: 16),
-                                label: Text(
-                                  'UPLOAD',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
+                          ),
+                          initiallyExpanded: false,
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: const EdgeInsets.only(bottom: 8),
+                          trailing: _uploadingFile
+                              ? SizedBox(
+                                  width: 80,
+                                  height: 4,
+                                  child: LinearProgressIndicator(
+                                    value: _uploadProgress,
+                                    backgroundColor: Colors.grey[200],
+                                    color: const Color(0xFF4F46E5),
+                                  ),
+                                )
+                              : TextButton.icon(
+                                  onPressed: _pickAndUploadFiles,
+                                  icon: const Icon(Icons.upload_file, size: 16),
+                                  label: Text(
+                                    'UPLOAD',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                 ),
+                          children: [
+                            if (_attachments.isNotEmpty)
+                              AttachmentList(
+                                attachments: _attachments,
+                                onDelete: _deleteAttachment,
                               ),
+                            if (_pendingFiles.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: _pendingFiles.map((f) {
+                                  return Chip(
+                                    label: Text(
+                                      f.path.split('/').last,
+                                      style: GoogleFonts.inter(fontSize: 10),
+                                    ),
+                                    deleteIcon: const Icon(
+                                      Icons.close,
+                                      size: 16,
+                                    ),
+                                    onDeleted: () {
+                                      setState(() {
+                                        _pendingFiles.remove(f);
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                            ],
                           ],
                         ),
-                        if (_attachments.isNotEmpty)
-                          AttachmentList(
-                            attachments: _attachments,
-                            onDelete: _deleteAttachment,
-                          ),
-                        if (_pendingFiles.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _pendingFiles.map((f) {
-                              return Chip(
-                                label: Text(
-                                  f.path.split('/').last,
-                                  style: GoogleFonts.inter(fontSize: 10),
-                                ),
-                                deleteIcon: const Icon(Icons.close, size: 16),
-                                onDeleted: () {
-                                  setState(() {
-                                    _pendingFiles.remove(f);
-                                  });
-                                },
-                              );
-                            }).toList(),
-                          ),
-                        ],
                         const SizedBox(height: 20),
 
                         // Category + Deadline row
