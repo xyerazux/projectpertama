@@ -20,26 +20,26 @@ class AttachmentController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'files' => 'required|array',
-            'files.*' => 'required|file|mimes:jpeg,png,jpg,gif,pdf,doc,docx,xls,xlsx,mp4,mov,webm|max:25600', // max 25MB
+            'files.*' => 'required|file|max:51200', // max 50MB
         ]);
 
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        if ($type === 'task') {
+        if ($type === 'tasks' || $type === 'task') {
             $parent = Task::findOrFail($id);
             // Ensure auth logic if task belongs to user (assuming handled by policies or directly)
             if ($parent->user_id !== $request->user()->id) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
-        } elseif ($type === 'roadmap') {
+        } elseif ($type === 'roadmaps' || $type === 'roadmap') {
             $parent = Roadmap::findOrFail($id);
             if ($parent->user_id !== $request->user()->id) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
         } else {
-            return response()->json(['success' => false, 'message' => 'Invalid generic type.'], 400);
+            return response()->json(['success' => false, 'message' => "Invalid generic type: {$type}."], 400);
         }
 
         $attachments = [];

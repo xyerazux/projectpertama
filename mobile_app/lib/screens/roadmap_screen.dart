@@ -468,24 +468,7 @@ class RoadmapScreenState extends State<RoadmapScreen> {
   Future<void> _pickAndUploadRoadmapFiles(int index) async {
     final roadmap = _roadmaps[index];
     try {
-      final result = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
-        type: FileType.custom,
-        allowedExtensions: [
-          'mp3',
-          'mp4',
-          'png',
-          'jpg',
-          'jpeg',
-          'doc',
-          'docx',
-          'pdf',
-          'xls',
-          'xlsx',
-          'zip',
-          'txt',
-        ],
-      );
+      final result = await FilePicker.platform.pickFiles(allowMultiple: true);
       if (result == null || result.files.isEmpty) return;
 
       final files = result.paths
