@@ -21,7 +21,7 @@ class Attachment extends Model
 
     public function getFileUrlAttribute()
     {
-        return asset(\Illuminate\Support\Facades\Storage::url($this->file_path));
+        return url('storage/attachments/' . basename($this->file_path));
     }
 
     /**

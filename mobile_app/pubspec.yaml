@@ -31,6 +31,7 @@ dependencies:
   mime_type: ^1.0.1
   permission_handler: ^12.0.1
   http_parser: ^4.1.2
+  open_file_plus: ^3.4.1+1
 
 dev_dependencies:
   flutter_test:

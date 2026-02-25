@@ -17,14 +17,14 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    
+
     // dashboard & profile
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::patch('/profile/priority', [ProfileController::class, 'updatePriority'])->name('profile.priority');
-    
+
     // tasks - static routes
     Route::get('/tasks/completed', [TaskController::class, 'completed'])->name('tasks.completed');
     Route::get('/tasks/trash', [TaskController::class, 'trash'])->name('tasks.trash');
@@ -50,7 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // roadmap - read
     Route::get('/roadmap', [RoadmapController::class, 'index'])->name('roadmap.index');
-    
+
     // roadmap - write operations dengan custom rate limiter 'roadmap'
     Route::middleware('throttle:roadmap')->group(function () {
         Route::post('/roadmap', [RoadmapController::class, 'store'])->name('roadmap.store');
@@ -63,7 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // optimize cache - limit ketat
-Route::get('/optimize', function() {
+Route::get('/optimize', function () {
     \Artisan::call('route:clear');
     \Artisan::call('config:clear');
     \Artisan::call('cache:clear');
@@ -71,4 +71,13 @@ Route::get('/optimize', function() {
     return "Application Cleaned and Optimized!";
 })->middleware('throttle:5,1');
 
-require __DIR__.'/auth.php';
+// fallback for storage files if symlink fails on Railway
+Route::get('storage/attachments/{filename}', function ($filename) {
+    $path = storage_path('app/public/attachments/' . $filename);
+    if (!file_exists($path)) {
+        abort(404, 'File not found on server.');
+    }
+    return response()->file($path);
+});
+
+require __DIR__ . '/auth.php';

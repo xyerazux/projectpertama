@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:open_file_plus/open_file_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart';
 import '../models/attachment.dart';
 import '../services/attachment_service.dart';
 
@@ -43,22 +45,53 @@ class AttachmentList extends StatelessWidget {
       return;
     }
 
+    // Show downloading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Downloading file...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
     try {
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
+      final tempDir = await getTemporaryDirectory();
+      // Use timestamp to prevent caching issues if same filename is downloaded again
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final savePath = '${tempDir.path}/${timestamp}_${attachment.fileName}';
+
+      final dio = Dio();
+      await dio.download(url, savePath);
+
+      if (context.mounted) Navigator.pop(context); // close dialog
+
+      final result = await OpenFile.open(savePath);
+      if (result.type != ResultType.done &&
+          result.type != ResultType.fileNotFound) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Could not open file')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open: ${result.message}')),
+          );
         }
       }
     } catch (e) {
       if (context.mounted) {
+        Navigator.pop(context); // close dialog
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error downloading: $e')));
       }
     }
   }
