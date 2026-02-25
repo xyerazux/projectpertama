@@ -62,7 +62,7 @@ class TaskController extends Controller
     public function show(Task $task)
     {
         $this->authorizeOwner($task);
-        $task->load(['category', 'subtasks']);
+        $task->load(['category', 'subtasks', 'attachments']);
 
         return response()->json([
             'success' => true,
@@ -142,7 +142,7 @@ class TaskController extends Controller
             }
         }
 
-        $task->load(['category', 'subtasks']);
+        $task->load(['category', 'subtasks', 'attachments']);
 
         return response()->json([
             'success' => true,
@@ -231,7 +231,7 @@ class TaskController extends Controller
             }
         }
 
-        $task->load(['category', 'subtasks']);
+        $task->load(['category', 'subtasks', 'attachments']);
 
         return response()->json([
             'success' => true,

@@ -24,6 +24,11 @@ dependencies:
   package_info_plus: ^9.0.0
   timezone: ^0.9.4
   ota_update: ^7.1.0
+  file_picker: ^10.3.10
+  dio: ^5.9.1
+  cached_network_image: ^3.4.1
+  video_player: ^2.10.1
+  mime_type: ^1.0.1
 
 dev_dependencies:
   flutter_test:

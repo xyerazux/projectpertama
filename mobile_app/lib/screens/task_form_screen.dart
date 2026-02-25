@@ -5,6 +5,11 @@ import '../models/task.dart';
 import '../models/category.dart';
 import '../services/task_service.dart';
 import '../services/auth_service.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import '../models/attachment.dart';
+import '../services/attachment_service.dart';
+import '../widgets/attachment_list.dart';
 
 class TaskFormScreen extends StatefulWidget {
   final Task? task; // null = create, non-null = edit
@@ -29,6 +34,10 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   bool _loading = false;
   bool _saving = false;
   String? _error;
+
+  bool _uploadingFile = false;
+  double _uploadProgress = 0.0;
+  List<Attachment> _attachments = [];
 
   bool get _isEditing => widget.task != null;
 
@@ -60,6 +69,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
           );
           _subtaskStatus[i] = t.subtasks[i].isCompleted;
         }
+        _attachments = List.from(t.attachments);
       } else {
         _subtaskControllers = [TextEditingController()];
         _subtaskStatus[0] = false;
@@ -144,6 +154,58 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       ),
     );
     if (picked != null) setState(() => _deadline = picked);
+  }
+
+  Future<void> _pickAndUploadFiles() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+      if (result == null || result.files.isEmpty) return;
+
+      final files = result.paths
+          .whereType<String>()
+          .map((p) => File(p))
+          .toList();
+      if (files.isEmpty) return;
+
+      setState(() {
+        _uploadingFile = true;
+        _uploadProgress = 0.0;
+      });
+
+      final uploaded = await AttachmentService.uploadAttachments(
+        'tasks',
+        widget.task!.id,
+        files,
+        (count, total) {
+          setState(() {
+            _uploadProgress = count / total;
+          });
+        },
+      );
+
+      setState(() {
+        _attachments.addAll(uploaded);
+        _uploadingFile = false;
+      });
+    } catch (e) {
+      setState(() {
+        _uploadingFile = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _deleteAttachment(int id) async {
+    final success = await AttachmentService.deleteAttachment(id);
+    if (success) {
+      setState(() {
+        _attachments.removeWhere((a) => a.id == id);
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -477,6 +539,46 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                           type: TextInputType.url,
                           textColor: const Color(0xFF4F46E5),
                         ),
+
+                        if (_isEditing) ...[
+                          const SizedBox(height: 20),
+                          Divider(color: Colors.grey[100]),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _label(
+                                'FILE ATTACHMENTS',
+                                color: const Color(0xFF4F46E5),
+                              ),
+                              if (_uploadingFile)
+                                SizedBox(
+                                  width: 100,
+                                  child: LinearProgressIndicator(
+                                    value: _uploadProgress,
+                                    backgroundColor: Colors.grey[200],
+                                    color: const Color(0xFF4F46E5),
+                                  ),
+                                )
+                              else
+                                TextButton.icon(
+                                  onPressed: _pickAndUploadFiles,
+                                  icon: const Icon(Icons.upload_file, size: 16),
+                                  label: Text(
+                                    'UPLOAD',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          AttachmentList(
+                            attachments: _attachments,
+                            onDelete: _deleteAttachment,
+                          ),
+                        ],
                         const SizedBox(height: 20),
 
                         // Category + Deadline row

@@ -1,4 +1,5 @@
 import 'subtask.dart';
+import 'attachment.dart';
 
 class Task {
   final int id;
@@ -12,6 +13,7 @@ class Task {
   final String? categoryName;
   final DateTime? completedAt;
   final List<Subtask> subtasks;
+  final List<Attachment> attachments;
 
   Task({
     required this.id,
@@ -25,6 +27,7 @@ class Task {
     this.categoryName,
     this.completedAt,
     this.subtasks = const [],
+    this.attachments = const [],
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -32,6 +35,13 @@ class Task {
     if (json['subtasks'] != null) {
       subtaskList = (json['subtasks'] as List)
           .map((s) => Subtask.fromJson(s))
+          .toList();
+    }
+
+    List<Attachment> attachmentList = [];
+    if (json['attachments'] != null) {
+      attachmentList = (json['attachments'] as List)
+          .map((a) => Attachment.fromJson(a))
           .toList();
     }
 
@@ -49,6 +59,7 @@ class Task {
           ? DateTime.tryParse(json['completed_at'])
           : null,
       subtasks: subtaskList,
+      attachments: attachmentList,
     );
   }
 

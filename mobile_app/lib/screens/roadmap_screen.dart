@@ -6,6 +6,11 @@ import 'package:confetti/confetti.dart';
 import '../services/task_service.dart';
 import '../services/local_db.dart';
 import '../services/connectivity_service.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import '../models/attachment.dart';
+import '../services/attachment_service.dart';
+import '../widgets/attachment_list.dart';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ROADMAP SCREEN — Vertical Timeline + Filters + Stats
@@ -460,6 +465,81 @@ class RoadmapScreenState extends State<RoadmapScreen> {
     }
   }
 
+  Future<void> _pickAndUploadRoadmapFiles(int index) async {
+    final roadmap = _roadmaps[index];
+    try {
+      final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+      if (result == null || result.files.isEmpty) return;
+
+      final files = result.paths
+          .whereType<String>()
+          .map((p) => File(p))
+          .toList();
+      if (files.isEmpty) return;
+
+      setState(() {
+        roadmap['_uploading'] = true;
+        roadmap['_uploadProgress'] = 0.0;
+      });
+
+      final uploaded = await AttachmentService.uploadAttachments(
+        'roadmaps',
+        roadmap['id'],
+        files,
+        (count, total) {
+          setState(() {
+            roadmap['_uploadProgress'] = count / total;
+          });
+        },
+      );
+
+      setState(() {
+        roadmap['attachments'] = (roadmap['attachments'] as List? ?? [])
+          ..addAll(
+            uploaded
+                .map(
+                  (a) => {
+                    'id': a.id,
+                    'attachable_type': a.attachableType,
+                    'attachable_id': a.attachableId,
+                    'file_path': a.filePath,
+                    'file_name': a.fileName,
+                    'file_mime_type': a.fileMimeType,
+                    'file_size': a.fileSize,
+                  },
+                )
+                .toList(),
+          );
+        roadmap['_uploading'] = false;
+      });
+    } catch (e) {
+      setState(() {
+        roadmap['_uploading'] = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _deleteRoadmapAttachment(
+    int roadmapIndex,
+    int attachmentId,
+  ) async {
+    final success = await AttachmentService.deleteAttachment(attachmentId);
+    if (success) {
+      setState(() {
+        final roadmap = _roadmaps[roadmapIndex];
+        final atts = roadmap['attachments'] as List?;
+        if (atts != null) {
+          atts.removeWhere((a) => a['id'] == attachmentId);
+        }
+      });
+    }
+  }
+
   Widget _inputBox(TextEditingController c, String hint, {int maxLines = 1}) {
     return Container(
       decoration: BoxDecoration(
@@ -742,6 +822,13 @@ class RoadmapScreenState extends State<RoadmapScreen> {
     final doneSteps = steps.where((s) => s['is_completed'] == true).length;
     final pct = totalSteps > 0 ? (doneSteps / totalSteps * 100).round() : 0;
     final isExp = _expanded.contains(index);
+    final List<Attachment> attachments =
+        (roadmap['attachments'] as List?)
+            ?.map((a) => Attachment.fromJson(Map<String, dynamic>.from(a)))
+            .toList() ??
+        [];
+    bool uploading = roadmap['_uploading'] == true;
+    double uploadProgress = roadmap['_uploadProgress'] ?? 0.0;
 
     return IntrinsicHeight(
       child: Row(
@@ -995,6 +1082,81 @@ class RoadmapScreenState extends State<RoadmapScreen> {
                         },
                       ),
                     ),
+                    Divider(height: 1, color: Colors.grey[100]),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'FILE ATTACHMENTS',
+                                style: GoogleFonts.inter(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2,
+                                  color: Colors.grey[400],
+                                ),
+                              ),
+                              if (uploading)
+                                SizedBox(
+                                  width: 80,
+                                  child: LinearProgressIndicator(
+                                    value: uploadProgress,
+                                    backgroundColor: Colors.grey[200],
+                                    color: const Color(0xFF4F46E5),
+                                  ),
+                                )
+                              else
+                                InkWell(
+                                  onTap: () =>
+                                      _pickAndUploadRoadmapFiles(index),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFF4F46E5,
+                                      ).withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.upload_file_rounded,
+                                          size: 14,
+                                          color: Color(0xFF4F46E5),
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          'UPLOAD',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1,
+                                            color: const Color(0xFF4F46E5),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          AttachmentList(
+                            attachments: attachments,
+                            onDelete: (attId) =>
+                                _deleteRoadmapAttachment(index, attId),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     // Delete roadmap button
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),

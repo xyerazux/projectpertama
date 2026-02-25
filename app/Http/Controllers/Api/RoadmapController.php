@@ -30,7 +30,7 @@ class RoadmapController extends Controller
     {
         if ($roadmap->user_id !== Auth::id())
             abort(403);
-        $roadmap->load('steps');
+        $roadmap->load(['steps', 'attachments']);
         $roadmap->completion_percentage = $roadmap->completion_percentage;
 
         return response()->json(['success' => true, 'data' => $roadmap]);
