@@ -20,7 +20,7 @@ class AttachmentController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'files' => 'required|array',
-            'files.*' => 'required|file|max:51200', // max 50MB
+            'files.*' => 'required|file|max:50000', // Universal mime max:50000
         ]);
 
         if ($validator->fails()) {
@@ -42,28 +42,41 @@ class AttachmentController extends Controller
             return response()->json(['success' => false, 'message' => "Invalid generic type: {$type}."], 400);
         }
 
-        $attachments = [];
+        try {
+            $attachments = [];
 
-        foreach ($request->file('files') as $file) {
-            $filename = Str::uuid() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('attachments', $filename, 's3');
+            // Pastikan folder exist dengan opsi rekursif dan CHMOD 0775
+            $storagePath = storage_path('app/public/attachments');
+            if (!file_exists($storagePath)) {
+                mkdir($storagePath, 0775, true);
+            }
 
-            $attachment = $parent->attachments()->create([
-                'file_path' => $path,
-                'file_name' => $file->getClientOriginalName(),
-                'file_mime_type' => $file->getMimeType(),
-                'file_size' => $file->getSize(),
-                'uploaded_by' => $request->user()->id,
-            ]);
+            foreach ($request->file('files') as $file) {
+                $filename = Str::uuid() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('attachments', $filename, 'public');
 
-            $attachments[] = $attachment;
+                $attachment = $parent->attachments()->create([
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'uploaded_by' => $request->user()->id,
+                ]);
+
+                $attachments[] = $attachment;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Attachments uploaded successfully',
+                'data' => $attachments,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Attachments uploaded successfully',
-            'data' => $attachments,
-        ], 201);
     }
 
     /**
@@ -75,9 +88,9 @@ class AttachmentController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
-        // Delete from S3
-        if (Storage::disk('s3')->exists($attachment->file_path)) {
-            Storage::disk('s3')->delete($attachment->file_path);
+        // Delete from local public storage
+        if (Storage::disk('public')->exists($attachment->file_path)) {
+            Storage::disk('public')->delete($attachment->file_path);
         }
 
         $attachment->delete();
@@ -100,11 +113,8 @@ class AttachmentController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
-        // Generate temporary URL valid for 15 minutes
-        $url = Storage::disk('s3')->temporaryUrl(
-            $attachment->file_path,
-            now()->addMinutes(15)
-        );
+        // Generate public URL
+        $url = asset(Storage::url($attachment->file_path));
 
         return response()->json([
             'success' => true,
