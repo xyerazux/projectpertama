@@ -13,10 +13,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ConnectivityService.init();
 
-  await NotificationService.initialize();
-  await NotificationService.requestPermission();
-  await NotificationService.scheduleDailyReflection();
-
   NotificationService.onNotificationClick = (String? payload) {
     if (payload == 'daily_reflection') {
       final context = navigatorKey.currentContext;
@@ -30,6 +26,14 @@ void main() async {
       }
     }
   };
+
+  await NotificationService.initialize();
+
+  // Request permission and schedule reflection asynchronously
+  // without blocking the main app startup.
+  NotificationService.requestPermission().then((_) {
+    NotificationService.scheduleDailyReflection();
+  });
 
   runApp(const TaskManagerApp());
 }
