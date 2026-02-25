@@ -44,7 +44,7 @@ class AttachmentService {
 
       formData.files.add(
         MapEntry(
-          'attachments[]',
+          'files[]',
           await MultipartFile.fromFile(
             files[i].path,
             filename: files[i].path.split('/').last,
