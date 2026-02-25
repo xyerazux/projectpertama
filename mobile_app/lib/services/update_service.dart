@@ -7,11 +7,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../main.dart'; // To access navigatorKey
+
 class UpdateService {
   static Future<Map<String, dynamic>?> checkUpdate() async {
     try {
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/check-update'),
+        Uri.parse('${ApiConstants.baseUrl}/check-version'),
       );
 
       if (response.statusCode == 200) {
@@ -39,15 +41,18 @@ class UpdateService {
     return localVersion != serverVerClean;
   }
 
-  static Future<void> checkAndShowUpdate(BuildContext context) async {
+  static Future<void> checkAndShowUpdate([BuildContext? context]) async {
     final config = await checkUpdate();
     if (config != null) {
       final serverVersion = config['latest_version'];
       final downloadUrl = config['download_url'];
 
       final isAvailable = await isUpdateAvailable(serverVersion);
-      if (isAvailable && context.mounted) {
-        showUpdateDialog(context, serverVersion, downloadUrl);
+      if (isAvailable) {
+        final ctx = context ?? navigatorKey.currentContext;
+        if (ctx != null && ctx.mounted) {
+          showUpdateDialog(ctx, serverVersion, downloadUrl);
+        }
       }
     }
   }

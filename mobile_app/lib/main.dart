@@ -6,6 +6,7 @@ import 'services/auth_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/notification_service.dart';
 import 'widgets/daily_reflection_bottom_sheet.dart';
+import 'services/update_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -62,8 +63,21 @@ class TaskManagerApp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.checkAndShowUpdate(navigatorKey.currentContext);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

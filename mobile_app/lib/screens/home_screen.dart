@@ -10,7 +10,6 @@ import 'category_screen.dart';
 import 'profile_screen.dart';
 import 'task_form_screen.dart';
 import 'login_screen.dart';
-import '../services/update_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -73,9 +72,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadUser();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      UpdateService.checkAndShowUpdate(context);
-    });
   }
 
   Future<void> _loadUser() async {
