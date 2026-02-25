@@ -167,8 +167,14 @@ class TaskCard extends StatelessWidget {
                         const SizedBox(height: 12),
                         GestureDetector(
                           onTap: () async {
-                            final url = task.linkAttachment!;
-                            if (url.isEmpty) return;
+                            final rawUrl = task.linkAttachment!;
+                            if (rawUrl.isEmpty) return;
+
+                            // Normalize: ensure the URL has a https:// scheme
+                            final url = rawUrl.startsWith('http')
+                                ? rawUrl
+                                : 'https://$rawUrl';
+                            print('[TaskCard] 🔗 Link attachment URL: $url');
 
                             showDialog(
                               context: context,
@@ -202,14 +208,24 @@ class TaskCard extends StatelessWidget {
 
                               final savePath =
                                   '${tempDir.path}/${timestamp}_$fileName';
+                              print('[TaskCard] 💾 Saving to: $savePath');
 
-                              final dio = Dio();
+                              final dio = Dio(
+                                BaseOptions(
+                                  connectTimeout: const Duration(seconds: 30),
+                                  receiveTimeout: const Duration(seconds: 60),
+                                ),
+                              );
                               await dio.download(url, savePath);
+                              print('[TaskCard] ✅ Download complete');
 
                               if (context.mounted)
                                 Navigator.pop(context); // close dialog
 
                               final result = await OpenFilex.open(savePath);
+                              print(
+                                '[TaskCard] 📂 OpenFilex: ${result.type} — ${result.message}',
+                              );
                               if (result.type != ResultType.done &&
                                   result.type != ResultType.fileNotFound) {
                                 if (context.mounted) {
@@ -223,6 +239,7 @@ class TaskCard extends StatelessWidget {
                                 }
                               }
                             } catch (e) {
+                              print('[TaskCard] ❌ Error: $e');
                               if (context.mounted) {
                                 Navigator.pop(context); // close dialog
                                 ScaffoldMessenger.of(context).showSnackBar(

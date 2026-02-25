@@ -4,7 +4,6 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import '../models/attachment.dart';
-import '../services/attachment_service.dart';
 
 class AttachmentList extends StatelessWidget {
   final List<Attachment> attachments;
@@ -19,31 +18,13 @@ class AttachmentList extends StatelessWidget {
   });
 
   Future<void> _handleTap(BuildContext context, Attachment attachment) async {
-    // If the backend has provided fileUrl via eager loading and accessor, use it.
-    // Otherwise fallback to the view endpoint.
-    String? url = attachment.fileUrl;
+    // Build the full download URL using the model's resolveUrl() method.
+    // resolveUrl() prioritises fileUrl (if it's already https://), otherwise
+    // constructs the URL from filePath + the Railway storage base URL.
+    final url = attachment.resolveUrl();
 
-    if (url == null) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-      try {
-        url = await AttachmentService.getViewUrl(attachment.id);
-      } finally {
-        if (context.mounted) Navigator.pop(context);
-      }
-    }
-
-    if (url == null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not load attachment')),
-        );
-      }
-      return;
-    }
+    print('[AttachmentList] 🔗 Downloading: $url');
+    print('[AttachmentList] 📎 File: ${attachment.fileName}');
 
     // Show downloading indicator
     showDialog(
@@ -71,13 +52,23 @@ class AttachmentList extends StatelessWidget {
       // Use timestamp to prevent caching issues if same filename is downloaded again
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final savePath = '${tempDir.path}/${timestamp}_${attachment.fileName}';
+      print('[AttachmentList] 💾 Saving to: $savePath');
 
-      final dio = Dio();
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 60),
+        ),
+      );
       await dio.download(url, savePath);
+      print('[AttachmentList] ✅ Download complete');
 
       if (context.mounted) Navigator.pop(context); // close dialog
 
       final result = await OpenFilex.open(savePath);
+      print(
+        '[AttachmentList] 📂 OpenFilex result: ${result.type} — ${result.message}',
+      );
       if (result.type != ResultType.done &&
           result.type != ResultType.fileNotFound) {
         if (context.mounted) {
@@ -87,6 +78,7 @@ class AttachmentList extends StatelessWidget {
         }
       }
     } catch (e) {
+      print('[AttachmentList] ❌ Error: $e');
       if (context.mounted) {
         Navigator.pop(context); // close dialog
         ScaffoldMessenger.of(

@@ -19,6 +19,27 @@ class Attachment {
     this.fileUrl,
   });
 
+  /// Returns the fully-qualified download URL for this attachment.
+  ///
+  /// Priority order:
+  /// 1. `fileUrl` from the server if it already includes the scheme (https://)
+  /// 2. Built from `filePath`: https://productivityapp.up.railway.app/storage/{filePath}
+  ///
+  /// This prevents "No host specified" errors when the database only stores
+  /// relative paths like `attachments/myfile.pdf`.
+  String resolveUrl() {
+    // Use fileUrl if the server already gave us a full URL
+    if (fileUrl != null && fileUrl!.startsWith('http')) {
+      return fileUrl!;
+    }
+
+    // Build from filePath. filePath is relative like "attachments/file.jpg"
+    // so we strip any leading slash to avoid double slashes.
+    const storageBase = 'https://productivityapp.up.railway.app/storage';
+    final cleanPath = filePath.startsWith('/') ? filePath : '/$filePath';
+    return '$storageBase$cleanPath';
+  }
+
   factory Attachment.fromJson(Map<String, dynamic> json) {
     return Attachment(
       id: json['id'],
