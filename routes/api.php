@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\RoadmapController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReflectionController;
 use App\Http\Controllers\Api\MotivatorController;
+use App\Http\Controllers\Api\AppConfigController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,9 +17,13 @@ use App\Http\Controllers\Api\MotivatorController;
 |--------------------------------------------------------------------------
 */
 
+use App\Http\Controllers\Api\AppVersionController;
+
 // ── Public (no auth) ──────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/check-update', [AppConfigController::class, 'checkUpdate']);
+Route::get('/check-version', [AppVersionController::class, 'checkVersion']);
 
 // ── Protected (Sanctum token required) ────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -67,6 +72,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/tasks/{id}/force', [TaskController::class, 'forceDelete']);
         Route::patch('/subtasks/{subtask}/toggle', [TaskController::class, 'toggleSubtask']);
     });
+
+    // Attachments
+    Route::post('/{type}/{id}/attachments', [App\Http\Controllers\Api\AttachmentController::class, 'store'])->where('type', 'tasks|roadmaps');
+    Route::delete('/attachments/{attachment}', [App\Http\Controllers\Api\AttachmentController::class, 'destroy']);
+    Route::get('/attachments/{attachment}/view', [App\Http\Controllers\Api\AttachmentController::class, 'view']);
 
     // Roadmaps — read
     Route::get('/roadmaps', [RoadmapController::class, 'index']);

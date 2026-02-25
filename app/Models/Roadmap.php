@@ -46,6 +46,14 @@ class Roadmap extends Model
     }
 
     /**
+     * Relationship: Roadmap has many Attachments (Polymorphic)
+     */
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    /**
      * Helper: Get completion percentage
      */
     public function getCompletionPercentageAttribute(): float

@@ -29,7 +29,7 @@ class MotivatorController extends Controller
                 'contents' => [
                     [
                         'parts' => [
-                            ['text' => "Give a 1-sentence motivational tip (max 15 words) for the task: {$taskTitle}. No emojis."]
+                            ['text' => "Generate a unique, creative, and short motivational sentence (max 15 words) for the task: {$taskTitle}. Randomize the tone: sometimes coaching, sometimes friendly, or direct. NO EMOJIS. Every response must be different from previous ones."]
                         ]
                     ]
                 ]

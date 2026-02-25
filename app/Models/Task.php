@@ -10,7 +10,7 @@ class Task extends Model
 {
     use HasFactory, SoftDeletes;
 
-     protected $fillable = [
+    protected $fillable = [
         'user_id',
         'title',
         'description',
@@ -23,21 +23,29 @@ class Task extends Model
         'completed_at',
     ];
 
-     protected $casts = [
+    protected $casts = [
         'deadline' => 'date',
         'completed_at' => 'datetime',
     ];
 
     // relationships...
-    public function user() {
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function category() {
+    public function category()
+    {
         return $this->belongsTo(Category::class);
     }
 
-    public function subtasks() {
+    public function subtasks()
+    {
         return $this->hasMany(Subtask::class);
+    }
+
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
     }
 }
